@@ -78,6 +78,13 @@ class _HomePageState extends ConsumerState<_HomePage> {
   Widget build(BuildContext context) {
     final chatModel = ref.watch(chatProvider);
 
+    // 初期化完了まではローディング表示
+    if (!chatModel.isInitialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (!chatModel.isConfigured && !_hasOpenedSettings) {
       _hasOpenedSettings = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -174,15 +181,18 @@ class _ChatBody extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: messages.isEmpty
-              ? const _EmptyState()
-              : ListView.builder(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: messages.isEmpty
+                ? const _EmptyState()
+                : ListView.builder(
                   controller: scrollController,
                   padding: const EdgeInsets.only(top: 8, bottom: 8),
                   itemCount: messages.length,
                   itemBuilder: (context, index) =>
                       _buildMessageWidget(messages[index]),
                 ),
+          ),
         ),
         UserInput(chatcontroller: chatController),
       ],

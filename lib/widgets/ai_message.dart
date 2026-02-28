@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chatgpt/constants.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_chatgpt/widgets/code_block.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -32,7 +33,7 @@ class AiMessage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Flexible(
-            flex: 3,
+            flex: 99,
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -65,6 +66,7 @@ class AiMessage extends StatelessWidget {
                     MarkdownBody(
                       data: text,
                       selectable: true,
+                      syntaxHighlighter: AppSyntaxHighlighter(),
                       styleSheet: MarkdownStyleSheet(
                         p: const TextStyle(
                           color: FcColors.black,

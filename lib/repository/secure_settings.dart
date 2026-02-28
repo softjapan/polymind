@@ -4,7 +4,10 @@ import 'package:flutter_chatgpt/model/provider_config.dart';
 /// flutter_secure_storage を使ったセキュア設定管理
 class SecureSettings {
   SecureSettings([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            );
 
   final FlutterSecureStorage _storage;
 

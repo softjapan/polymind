@@ -17,7 +17,7 @@ class UserMessage extends StatelessWidget {
         children: [
           const Spacer(flex: 1),
           Flexible(
-            flex: 3,
+            flex: 99,
             child: GestureDetector(
               onLongPress: () {
                 Clipboard.setData(ClipboardData(text: text));

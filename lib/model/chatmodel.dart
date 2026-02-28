@@ -22,6 +22,7 @@ class ChatModel extends ChangeNotifier {
   final SecureSettings _settings = SecureSettings();
   final Uuid _uuid = const Uuid();
 
+  bool _initialized = false;
   int _idSeed = 0;
   final List<ChatMessage> _messages = [];
   String? _currentConversationId;
@@ -35,6 +36,7 @@ class ChatModel extends ChangeNotifier {
 
   String? get currentConversationId => _currentConversationId;
   ProviderConfig? get config => _config;
+  bool get isInitialized => _initialized;
   bool get isConfigured => _config != null && _config!.isValid;
 
   VoidCallback? onMessageAdded;
@@ -49,6 +51,7 @@ class ChatModel extends ChangeNotifier {
       _buildRepository();
     }
     await refreshConversations();
+    _initialized = true;
     notifyListeners();
   }
 
@@ -131,7 +134,10 @@ class ChatModel extends ChangeNotifier {
     // 会話がなければ新規作成
     if (_currentConversationId == null) {
       await startNewConversation();
-      // 最初のメッセージをタイトルにする
+    }
+
+    // 最初のメッセージならタイトルを更新
+    if (_messages.isEmpty) {
       final title = request.displayText.length > 30
           ? '${request.displayText.substring(0, 30)}...'
           : request.displayText;
