@@ -2,54 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chatgpt/constants.dart';
 
-/// ユーザーのメッセージを表示するウィジェットクラス
 class UserMessage extends StatelessWidget {
-  /// コンストラクタ
-  ///
-  /// @param key ウィジェットのキー
-  /// @param text 表示するメッセージテキスト
-  const UserMessage({
-    super.key,
-    required this.text,
-  });
+  const UserMessage({super.key, required this.text});
 
-  /// 表示するメッセージテキスト
   final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          const Spacer(flex: 1),
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: FcColors.green, // メッセージの背景色
-                borderRadius: BorderRadius.circular(16), // 角丸の半径
-              ),
-              child: SelectionArea(
-                // テキスト選択時のコールバック
-                onSelectionChanged: (content) async {
-                  // 選択されたテキストがある場合
-                  if (content != null) {
-                    // クリップボードにコピー
-                    await Clipboard.setData(
-                        ClipboardData(text: content.plainText));
-                  }
-                },
-                child: Text(
-                  text, // 表示するメッセージテキスト
+            flex: 3,
+            child: GestureDetector(
+              onLongPress: () {
+                Clipboard.setData(ClipboardData(text: text));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Copied'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: FcColors.userBubble,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    topRight: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                    bottomRight: Radius.circular(4),
+                  ),
+                ),
+                child: SelectableText(
+                  text,
                   style: const TextStyle(
-                    color: FcColors.white, // テキストの色
-                    fontSize: 18, // フォントサイズ
-                    fontWeight: FontWeight.w700, // フォントの太さ
+                    color: FcColors.white,
+                    fontSize: 15,
+                    height: 1.4,
                   ),
                 ),
               ),

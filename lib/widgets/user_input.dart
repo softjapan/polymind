@@ -1,100 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chatgpt/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:flutter_chatgpt/model/chatmodel.dart';
 
-/// ユーザーの入力を受け付けるウィジェット
-class UserInput extends ConsumerWidget {
-  /// コンストラクタ
-  ///
-  /// @param key ウィジェットのキー
-  /// @param chatcontroller テキスト入力を制御するコントローラー
-  const UserInput({
-    super.key,
-    required this.chatcontroller,
-  });
+class UserInput extends ConsumerStatefulWidget {
+  const UserInput({super.key, required this.chatcontroller});
 
-  /// テキスト入力を制御するコントローラー
   final TextEditingController chatcontroller;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        padding: const EdgeInsets.only(
-          top: 10,
-          bottom: 10,
-          left: 5,
-          right: 5,
-        ),
-        decoration: const BoxDecoration(
-          color: FcColors.white,
-          border: Border(
-            top: BorderSide(
-              color: FcColors.white,
-              width: 0.5,
-            ),
-          ),
-        ),
+  ConsumerState<UserInput> createState() => _UserInputState();
+}
+
+class _UserInputState extends ConsumerState<UserInput> {
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.chatcontroller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.chatcontroller.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final has = widget.chatcontroller.text.trim().isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
+
+  void _send() {
+    final text = widget.chatcontroller.text;
+    if (text.trim().isEmpty) return;
+    ref.read(chatProvider).sendChat(text);
+    widget.chatcontroller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: FcColors.surface,
+        border: Border(top: BorderSide(color: FcColors.border, width: 0.5)),
+      ),
+      child: SafeArea(
+        top: false,
         child: Row(
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SvgPicture.asset(
-                  'images/user-question.svg', // ユーザーアバターの画像
-                  height: 30,
-                  width: 30,
-                ),
-              ),
-            ),
             Expanded(
               child: TextFormField(
-                onFieldSubmitted: (e) {
-                  ref.read(chatProvider).sendChat(e); // 入力されたテキストを送信
-                  chatcontroller.clear(); // 入力フィールドをクリア
-                },
-                controller: chatcontroller,
+                controller: widget.chatcontroller,
+                onFieldSubmitted: (_) => _send(),
                 textInputAction: TextInputAction.send,
-                style: const TextStyle(
-                  color: FcColors.black,
-                ),
-                decoration: const InputDecoration(
-                  focusColor: FcColors.gray,
+                style: const TextStyle(color: FcColors.black, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Message...',
+                  hintStyle: TextStyle(color: FcColors.gray),
                   filled: true,
-                  fillColor: FcColors.white,
-                  suffixIcon: Icon(
-                    Icons.send,
-                    color: FcColors.gray,
+                  fillColor: FcColors.inputBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: FcColors.gray,
-                      width: 1.0,
-                    ),
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(30),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: FcColors.gray,
-                      width: 2.0,
-                    ),
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(30),
-                    ),
-                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 keyboardType: TextInputType.multiline,
                 maxLines: null,
                 minLines: 1,
+              ),
+            ),
+            const SizedBox(width: 6),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                color: _hasText ? FcColors.accent : FcColors.inputBg,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _send,
+                icon: Icon(
+                  Icons.arrow_upward_rounded,
+                  color: _hasText ? FcColors.white : FcColors.gray,
+                ),
               ),
             ),
           ],
