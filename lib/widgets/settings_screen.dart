@@ -132,8 +132,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   labelText: 'Endpoint',
                   prefixIcon: Icon(Icons.link),
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Required';
+                  if (_provider == LlmProvider.openai &&
+                      !v.trim().toLowerCase().startsWith('https://')) {
+                    return 'OpenAI endpoint must use HTTPS';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(

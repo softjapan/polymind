@@ -188,7 +188,11 @@ class AiMessage extends StatelessWidget {
       throw StateError('Image source is empty.');
     }
     if (imageSrc.startsWith('data:image')) return _decodeDataUri(imageSrc);
-    final response = await http.get(Uri.parse(imageSrc));
+    final uri = Uri.parse(imageSrc);
+    if (uri.scheme != 'https') {
+      throw StateError('Only HTTPS image URLs are allowed.');
+    }
+    final response = await http.get(uri);
     if (response.statusCode != 200) {
       throw StateError('Failed to download image data.');
     }

@@ -187,11 +187,11 @@ class ChatModel extends ChangeNotifier {
 
       await _completeStreaming(latestContent);
     } catch (e) {
-      _handleAssistantError(
-        request.type == _ChatTaskType.image
-            ? 'Failed to generate image: $e'
-            : 'An unexpected error occurred: $e',
-      );
+      final safeMsg = request.type == _ChatTaskType.image
+          ? 'Failed to generate image. Please check your settings and try again.'
+          : 'An unexpected error occurred. Please check your connection and settings.';
+      debugPrint('ChatModel error: $e');
+      _handleAssistantError(safeMsg);
     }
   }
 

@@ -31,26 +31,32 @@ class SecureSettings {
 
   /// 設定を読み込み（未設定なら null）
   Future<ProviderConfig?> load() async {
-    final providerName = await _storage.read(key: _keyProvider);
-    if (providerName == null) return null;
+    try {
+      final providerName = await _storage.read(key: _keyProvider);
+      if (providerName == null) return null;
 
-    final provider = LlmProvider.values.firstWhere(
-      (e) => e.name == providerName,
-      orElse: () => LlmProvider.openai,
-    );
+      final provider = LlmProvider.values.firstWhere(
+        (e) => e.name == providerName,
+        orElse: () => LlmProvider.openai,
+      );
 
-    final endpoint = await _storage.read(key: _keyEndpoint) ?? '';
-    final model = await _storage.read(key: _keyModel) ?? '';
-    final imageModel = await _storage.read(key: _keyImageModel);
-    final apiKey = await _storage.read(key: _keyApiKey);
+      final endpoint = await _storage.read(key: _keyEndpoint) ?? '';
+      final model = await _storage.read(key: _keyModel) ?? '';
+      final imageModel = await _storage.read(key: _keyImageModel);
+      final apiKey = await _storage.read(key: _keyApiKey);
 
-    return ProviderConfig(
-      provider: provider,
-      endpoint: endpoint,
-      model: model,
-      imageModel: imageModel?.isNotEmpty == true ? imageModel : null,
-      apiKey: apiKey?.isNotEmpty == true ? apiKey : null,
-    );
+      return ProviderConfig(
+        provider: provider,
+        endpoint: endpoint,
+        model: model,
+        imageModel: imageModel?.isNotEmpty == true ? imageModel : null,
+        apiKey: apiKey?.isNotEmpty == true ? apiKey : null,
+      );
+    } on FormatException {
+      // 暗号化方式の変更等でデータが破損した場合はクリアして再設定を促す
+      await clear();
+      return null;
+    }
   }
 
   /// 設定が存在するか
