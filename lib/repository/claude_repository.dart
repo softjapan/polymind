@@ -3,19 +3,19 @@ import 'dart:io' as io;
 
 import 'package:http/http.dart' as http;
 import 'package:langchain/langchain.dart' as lc;
-import 'package:langchain_openai/langchain_openai.dart';
+import 'package:langchain_anthropic/langchain_anthropic.dart';
 
 import 'package:polymind/model/chat_message.dart';
 import 'package:polymind/model/provider_config.dart';
 import 'package:polymind/repository/llm_repository.dart';
 
-/// OpenAI 用 LLM Repository
-class OpenAiRepository implements LlmRepository {
-  OpenAiRepository(this._config)
-      : _chatModel = ChatOpenAI(
+/// Anthropic Claude 用 LLM Repository
+class ClaudeRepository implements LlmRepository {
+  ClaudeRepository(this._config)
+      : _chatModel = ChatAnthropic(
           apiKey: _config.apiKey ?? '',
           baseUrl: _normalizeUrl(_config.endpoint),
-          defaultOptions: ChatOpenAIOptions(
+          defaultOptions: ChatAnthropicOptions(
             model: _config.model,
             temperature: _config.temperature,
             maxTokens: 2000,
@@ -23,11 +23,11 @@ class OpenAiRepository implements LlmRepository {
         );
 
   final ProviderConfig _config;
-  final ChatOpenAI _chatModel;
+  final ChatAnthropic _chatModel;
   final http.Client _httpClient = http.Client();
 
   @override
-  bool get supportsImageGeneration => true;
+  bool get supportsImageGeneration => false;
 
   @override
   Future<String> generate({required List<ChatMessage> history}) async {
@@ -49,53 +49,20 @@ class OpenAiRepository implements LlmRepository {
   }
 
   @override
-  Future<String> generateImage({required String prompt}) async {
-    final modelName = _config.imageModel ?? 'gpt-image-1';
-    final baseUrl = _normalizeUrl(_config.endpoint);
-    final uri = Uri.parse('$baseUrl/images/generations');
-
-    final response = await _httpClient.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer ${_config.apiKey}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': modelName,
-        'prompt': prompt,
-        'n': 1,
-        'size': '1024x1024',
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      throw StateError(
-        'Image generation failed: ${response.statusCode} ${response.body}',
-      );
-    }
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final data = decoded['data'] as List<dynamic>? ?? [];
-    if (data.isEmpty) {
-      throw StateError('No image payload returned from API.');
-    }
-
-    final first = data.first as Map<String, dynamic>;
-    final url = first['url'] as String?;
-    final b64 = first['b64_json'] as String?;
-
-    if (url != null && url.isNotEmpty) return url;
-    if (b64 != null && b64.isNotEmpty) return 'data:image/png;base64,$b64';
-    throw StateError('Image payload missing URL and base64 content.');
+  Future<String> generateImage({required String prompt}) {
+    throw UnsupportedError('Claude does not support image generation.');
   }
 
   @override
   Future<List<String>> listModels() async {
     final baseUrl = _normalizeUrl(_config.endpoint);
-    final uri = Uri.parse('$baseUrl/models');
+    final uri = Uri.parse('$baseUrl/v1/models');
     final response = await _httpClient.get(
       uri,
-      headers: {'Authorization': 'Bearer ${_config.apiKey}'},
+      headers: {
+        'x-api-key': _config.apiKey ?? '',
+        'anthropic-version': '2023-06-01',
+      },
     );
     if (response.statusCode != 200) {
       throw StateError(
@@ -126,14 +93,7 @@ class OpenAiRepository implements LlmRepository {
       if (message.sender == ChatSender.user) {
         prompt.add(await _buildHumanMessage(message));
       } else if (message.sender == ChatSender.assistant) {
-        if (message.hasImage) {
-          final description = message.altText?.trim().isNotEmpty == true
-              ? message.altText!.trim()
-              : 'Generated an image.';
-          prompt.add(lc.ChatMessage.aiText('Generated image: $description'));
-        } else {
-          prompt.add(lc.ChatMessage.aiText(message.text));
-        }
+        prompt.add(lc.ChatMessage.aiText(message.text));
       }
     }
     return prompt;

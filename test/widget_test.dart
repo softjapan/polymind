@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_chatgpt/widgets/user_message.dart';
-import 'package:flutter_chatgpt/widgets/loading.dart';
+import 'package:polymind/widgets/user_message.dart';
+import 'package:polymind/widgets/loading.dart';
 
 void main() {
   testWidgets('User message is displayed', (WidgetTester tester) async {

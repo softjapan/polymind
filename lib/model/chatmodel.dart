@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_chatgpt/model/chat_message.dart';
-import 'package:flutter_chatgpt/model/provider_config.dart';
-import 'package:flutter_chatgpt/repository/llm_repository.dart';
-import 'package:flutter_chatgpt/repository/openai_repository.dart';
-import 'package:flutter_chatgpt/repository/ollama_repository.dart';
-import 'package:flutter_chatgpt/repository/chat_database.dart';
-import 'package:flutter_chatgpt/repository/secure_settings.dart';
+import 'package:polymind/model/chat_message.dart';
+import 'package:polymind/model/provider_config.dart';
+import 'package:polymind/repository/llm_repository.dart';
+import 'package:polymind/repository/openai_repository.dart';
+import 'package:polymind/repository/ollama_repository.dart';
+import 'package:polymind/repository/gemini_repository.dart';
+import 'package:polymind/repository/claude_repository.dart';
+import 'package:polymind/repository/chat_database.dart';
+import 'package:polymind/repository/secure_settings.dart';
 import 'package:uuid/uuid.dart';
 
 /// Chat Model — LLM 通信 + DB 永続化
@@ -23,9 +26,13 @@ class ChatModel extends ChangeNotifier {
   final Uuid _uuid = const Uuid();
 
   bool _initialized = false;
+  StreamSubscription<String>? _streamSubscription;
+  Completer<void>? _streamCompleter;
+  Object? _generationToken;
   int _idSeed = 0;
   final List<ChatMessage> _messages = [];
   String? _currentConversationId;
+  bool _conversationPersisted = false;
   List<Map<String, dynamic>> _conversations = [];
 
   UnmodifiableListView<ChatMessage> get messages =>
@@ -38,6 +45,17 @@ class ChatModel extends ChangeNotifier {
   ProviderConfig? get config => _config;
   bool get isInitialized => _initialized;
   bool get isConfigured => _config != null && _config!.isValid;
+
+  /// 現在のプロバイダーが画像生成に対応しているか
+  bool get supportsImageGeneration =>
+      _repository?.supportsImageGeneration ?? false;
+
+  /// 応答を生成中かどうか（最後のメッセージが未完了のアシスタント発言）
+  bool get isGenerating {
+    if (_messages.isEmpty) return false;
+    final last = _messages.last;
+    return last.sender == ChatSender.assistant && !last.isComplete;
+  }
 
   VoidCallback? onMessageAdded;
   VoidCallback? onMessageUpdated;
@@ -72,6 +90,12 @@ class ChatModel extends ChangeNotifier {
       case LlmProvider.ollama:
         _repository = OllamaRepository(_config!);
         break;
+      case LlmProvider.gemini:
+        _repository = GeminiRepository(_config!);
+        break;
+      case LlmProvider.claude:
+        _repository = ClaudeRepository(_config!);
+        break;
     }
   }
 
@@ -82,23 +106,22 @@ class ChatModel extends ChangeNotifier {
   }
 
   /// 新規会話を開始
+  ///
+  /// DB への保存は最初のメッセージ送信まで遅延させる。
+  /// 即時保存すると、メッセージを送らずに何度も「New Chat」をタップした際に
+  /// 空の会話が DB に残り続けてしまうため。
   Future<void> startNewConversation() async {
-    final id = _uuid.v4();
-    await _db.createConversation(
-      id: id,
-      title: 'New Chat',
-      provider: (_config?.provider ?? LlmProvider.openai).name,
-      model: _config?.model ?? '',
-    );
-    _currentConversationId = id;
+    _currentConversationId = _uuid.v4();
+    _conversationPersisted = false;
     _messages.clear();
     _idSeed = 0;
-    await refreshConversations();
+    notifyListeners();
   }
 
   /// 既存の会話をロード
   Future<void> loadConversation(String conversationId) async {
     _currentConversationId = conversationId;
+    _conversationPersisted = true;
     final loaded = await _db.getMessages(conversationId);
     _messages
       ..clear()
@@ -119,67 +142,265 @@ class ChatModel extends ChangeNotifier {
     await _db.deleteConversation(conversationId);
     if (_currentConversationId == conversationId) {
       _currentConversationId = null;
+      _conversationPersisted = false;
       _messages.clear();
     }
     await refreshConversations();
   }
 
   /// チャット送信
-  Future<void> sendChat(String rawInput) async {
-    if (_repository == null) return;
+  Future<void> sendChat(String rawInput, {String? imagePath}) async {
+    if (_repository == null) {
+      _handleAssistantError(
+        'プロバイダーが設定されていません。設定画面でプロバイダーとAPIキーを設定してください。',
+      );
+      return;
+    }
 
     final request = _ChatRequest.parse(rawInput);
     if (request == null) return;
 
-    // 会話がなければ新規作成
+    // 会話がなければ新規作成（DB書き込みは行わない）
     if (_currentConversationId == null) {
       await startNewConversation();
     }
 
-    // 最初のメッセージならタイトルを更新
-    if (_messages.isEmpty) {
-      final title = request.displayText.length > 30
-          ? '${request.displayText.substring(0, 30)}...'
-          : request.displayText;
-      await _db.updateConversationTitle(_currentConversationId!, title);
-      await refreshConversations();
-    }
+    await _ensureConversationTitle(request.displayText);
 
     final placeholder = request.type == _ChatTaskType.image
         ? 'rendering image...'
         : 'thinking...';
-    await _addUserMessage(request.displayText, placeholder: placeholder);
+    await _addUserMessage(
+      request.displayText,
+      placeholder: placeholder,
+      imagePath: imagePath,
+    );
 
+    await _generateReply(type: request.type, prompt: request.prompt);
+  }
+
+  /// 応答を停止する
+  ///
+  /// ストリーミング用の Subscription を直接 cancel することで、次のチャンクを
+  /// 待たずに即座に中断する。チャンク間隔が空く場面（通信の遅延・停止）でも
+  /// フラグのポーリングに頼らないため確実に止まる。画像生成中は基になる
+  /// HTTP リクエスト自体は中断できないが、_generationToken を無効化して
+  /// 結果を無視し、UI 上は即座に完了扱いにする。
+  void stopGenerating() {
+    if (!isGenerating) return;
+    _generationToken = null;
+    _streamSubscription?.cancel();
+    _streamSubscription = null;
+    if (_streamCompleter != null && !_streamCompleter!.isCompleted) {
+      _streamCompleter!.complete();
+    }
+    _completeAsStopped();
+  }
+
+  Future<void> _completeAsStopped() async {
+    if (_messages.isEmpty) return;
+    final lastIndex = _messages.length - 1;
+    final lastMessage = _messages[lastIndex];
+    if (lastMessage.sender != ChatSender.assistant || lastMessage.isComplete) {
+      return;
+    }
+
+    final text = lastMessage.isStreaming && lastMessage.text.trim().isNotEmpty
+        ? lastMessage.text
+        : 'Stopped.';
+    _messages[lastIndex] = lastMessage.copyWith(
+      text: text,
+      status: ChatMessageStatus.complete,
+    );
+    notifyListeners();
+
+    if (_currentConversationId != null) {
+      await _db.updateMessage(
+        id: lastMessage.id,
+        text: text,
+        status: ChatMessageStatus.complete.name,
+      );
+    }
+
+    if (onMessageUpdated != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onMessageUpdated!();
+      });
+    }
+  }
+
+  /// 最後のアシスタント応答を破棄して再生成する
+  Future<void> regenerateLastResponse() async {
+    if (_repository == null || _messages.isEmpty) return;
+    final last = _messages.last;
+    if (last.sender != ChatSender.assistant || !last.isComplete) return;
+
+    final isImage = last.hasImage;
+    final prompt = isImage ? (last.altText ?? '') : '';
+
+    _messages.removeLast();
+    if (_currentConversationId != null) {
+      await _db.deleteMessage(last.id);
+    }
+
+    final placeholder = ChatMessage(
+      id: _nextId(),
+      sender: ChatSender.assistant,
+      text: isImage ? 'rendering image...' : 'thinking...',
+      status: ChatMessageStatus.loading,
+    );
+    _messages.add(placeholder);
+    notifyListeners();
+    if (_currentConversationId != null) {
+      await _db.insertMessage(
+        id: placeholder.id,
+        conversationId: _currentConversationId!,
+        message: placeholder,
+      );
+    }
+    if (onMessageAdded != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onMessageAdded!();
+      });
+    }
+
+    await _generateReply(
+      type: isImage ? _ChatTaskType.image : _ChatTaskType.text,
+      prompt: prompt,
+    );
+  }
+
+  /// ユーザーメッセージを編集し、以降のメッセージを破棄して再送信する
+  Future<void> editAndResend(String messageId, String newText) async {
+    if (_repository == null) return;
+    final index = _messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+    final target = _messages[index];
+    if (target.sender != ChatSender.user) return;
+
+    final request = _ChatRequest.parse(newText);
+    if (request == null) return;
+
+    final removed = _messages.sublist(index);
+    _messages.removeRange(index, _messages.length);
+    notifyListeners();
+    if (_currentConversationId != null) {
+      for (final m in removed) {
+        await _db.deleteMessage(m.id);
+      }
+    }
+
+    await _ensureConversationTitle(request.displayText);
+
+    final placeholder = request.type == _ChatTaskType.image
+        ? 'rendering image...'
+        : 'thinking...';
+    await _addUserMessage(
+      request.displayText,
+      placeholder: placeholder,
+      imagePath: target.userImagePath,
+    );
+
+    await _generateReply(type: request.type, prompt: request.prompt);
+  }
+
+  /// メッセージを1件削除する（生成中のメッセージは対象外）
+  Future<void> deleteMessage(String id) async {
+    final index = _messages.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+    final target = _messages[index];
+    if (target.sender == ChatSender.assistant && !target.isComplete) return;
+
+    _messages.removeAt(index);
+    notifyListeners();
+    await _db.deleteMessage(id);
+  }
+
+  /// 会話タイトルを変更する
+  Future<void> renameConversation(String conversationId, String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    await _db.updateConversationTitle(conversationId, trimmed);
+    await refreshConversations();
+  }
+
+  /// 最初のメッセージ送信時に会話をDBへ保存する（新規作成 or 題名更新）
+  Future<void> _ensureConversationTitle(String displayText) async {
+    if (_messages.isNotEmpty) return;
+    final title = displayText.length > 30
+        ? '${displayText.substring(0, 30)}...'
+        : displayText;
+    if (_conversationPersisted) {
+      await _db.updateConversationTitle(_currentConversationId!, title);
+    } else {
+      await _db.createConversation(
+        id: _currentConversationId!,
+        title: title,
+        provider: (_config?.provider ?? LlmProvider.openai).name,
+        model: _config?.model ?? '',
+      );
+      _conversationPersisted = true;
+    }
+    await refreshConversations();
+  }
+
+  Future<void> _generateReply({
+    required _ChatTaskType type,
+    required String prompt,
+  }) async {
+    if (_repository == null) return;
+    final token = Object();
+    _generationToken = token;
     try {
-      if (request.type == _ChatTaskType.image) {
+      if (type == _ChatTaskType.image) {
         if (!_repository!.supportsImageGeneration) {
           _handleAssistantError(
             'このプロバイダーは画像生成に対応していません。',
           );
           return;
         }
-        final imageUrl =
-            await _repository!.generateImage(prompt: request.prompt);
+        final imageUrl = await _repository!.generateImage(prompt: prompt);
+        // stopGenerating() で無効化されていれば結果は破棄する
+        if (_generationToken != token) return;
         await _completeWithImage(
           imageUrl: imageUrl,
-          description: request.prompt,
+          description: prompt,
         );
         return;
       }
 
       final historySnapshot = List<ChatMessage>.from(_messages);
       var latestContent = '';
+      final completer = Completer<void>();
+      _streamCompleter = completer;
 
-      await for (final partial
-          in _repository!.stream(history: historySnapshot)) {
-        if (partial.isEmpty) continue;
-        latestContent = partial;
-        _addStreamingUpdate(latestContent);
-      }
+      _streamSubscription =
+          _repository!.stream(history: historySnapshot).listen(
+        (partial) {
+          if (partial.isEmpty) return;
+          latestContent = partial;
+          _addStreamingUpdate(latestContent);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete();
+        },
+        onError: (Object e, StackTrace st) {
+          if (!completer.isCompleted) completer.completeError(e, st);
+        },
+        cancelOnError: true,
+      );
+
+      await completer.future;
+      _streamSubscription = null;
+      _streamCompleter = null;
+
+      // stopGenerating() 経由で中断済みなら、UI は既に確定済みなのでここでは何もしない
+      if (_generationToken != token) return;
 
       if (latestContent.isEmpty) {
         final finalHistory = List<ChatMessage>.from(_messages);
         latestContent = await _repository!.generate(history: finalHistory);
+        if (_generationToken != token) return;
         if (latestContent.isNotEmpty) {
           _addStreamingUpdate(latestContent);
         }
@@ -187,17 +408,20 @@ class ChatModel extends ChangeNotifier {
 
       await _completeStreaming(latestContent);
     } catch (e) {
-      final safeMsg = request.type == _ChatTaskType.image
+      if (_generationToken != token) return;
+      final safeMsg = type == _ChatTaskType.image
           ? 'Failed to generate image. Please check your settings and try again.'
           : 'An unexpected error occurred. Please check your connection and settings.';
       debugPrint('ChatModel error: $e');
       _handleAssistantError(safeMsg);
+    } finally {
     }
   }
 
   Future<void> _addUserMessage(
     String txt, {
     String placeholder = 'thinking...',
+    String? imagePath,
   }) async {
     final sanitized = txt.trim();
     if (sanitized.isEmpty) return;
@@ -207,6 +431,7 @@ class ChatModel extends ChangeNotifier {
       sender: ChatSender.user,
       text: sanitized,
       status: ChatMessageStatus.complete,
+      userImagePath: imagePath,
     );
     final aiMsg = ChatMessage(
       id: _nextId(),

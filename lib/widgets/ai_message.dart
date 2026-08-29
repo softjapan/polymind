@@ -5,9 +5,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_chatgpt/constants.dart';
+import 'package:polymind/constants.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_chatgpt/widgets/code_block.dart';
+import 'package:polymind/widgets/code_block.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -18,12 +18,16 @@ class AiMessage extends StatelessWidget {
     this.isStreaming = false,
     this.imageUrl,
     this.altText,
+    this.onDelete,
+    this.onRegenerate,
   });
 
   final String text;
   final bool isStreaming;
   final String? imageUrl;
   final String? altText;
+  final VoidCallback? onDelete;
+  final VoidCallback? onRegenerate;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,7 @@ class AiMessage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: FcColors.aiBubble,
+                color: context.colors.aiBubble,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(18),
@@ -61,6 +65,7 @@ class AiMessage extends StatelessWidget {
                       imageUrl: imageUrl!,
                       caption: _captionText,
                       onTap: () => _openImageViewer(context),
+                      onLongPress: onDelete,
                     )
                   else ...[
                     MarkdownBody(
@@ -68,17 +73,17 @@ class AiMessage extends StatelessWidget {
                       selectable: true,
                       syntaxHighlighter: AppSyntaxHighlighter(),
                       styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                          color: FcColors.black,
+                        p: TextStyle(
+                          color: context.colors.black,
                           fontSize: 15,
                           height: 1.5,
                         ),
                         code: TextStyle(
-                          backgroundColor: FcColors.inputBg,
+                          backgroundColor: context.colors.inputBg,
                           fontSize: 13,
                         ),
                         codeblockDecoration: BoxDecoration(
-                          color: FcColors.inputBg,
+                          color: context.colors.inputBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -89,13 +94,13 @@ class AiMessage extends StatelessWidget {
                         width: 40,
                         child: LinearProgressIndicator(
                           minHeight: 2,
-                          color: FcColors.accent,
-                          backgroundColor: FcColors.border,
+                          color: context.colors.accent,
+                          backgroundColor: context.colors.border,
                         ),
                       ),
                     ],
                   ],
-                  // Copy button for completed text messages
+                  // Action buttons for completed text messages
                   if (!isStreaming &&
                       (imageUrl == null || imageUrl!.isEmpty) &&
                       text.isNotEmpty)
@@ -103,25 +108,35 @@ class AiMessage extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: text));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Copied'),
-                                duration: Duration(seconds: 1),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (onRegenerate != null)
+                              _ActionIcon(
+                                icon: Icons.refresh_rounded,
+                                tooltip: 'Regenerate',
+                                onTap: onRegenerate!,
                               ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.copy_rounded,
-                              size: 16,
-                              color: FcColors.gray,
+                            if (onDelete != null)
+                              _ActionIcon(
+                                icon: Icons.delete_outline,
+                                tooltip: 'Delete',
+                                onTap: onDelete!,
+                              ),
+                            _ActionIcon(
+                              icon: Icons.copy_rounded,
+                              tooltip: 'Copy',
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: text));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Copied'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -200,16 +215,45 @@ class AiMessage extends StatelessWidget {
   }
 }
 
+class _ActionIcon extends StatelessWidget {
+  const _ActionIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 16, color: context.colors.gray),
+        ),
+      ),
+    );
+  }
+}
+
 class _ImageBubble extends StatelessWidget {
   const _ImageBubble({
     required this.imageUrl,
     this.caption,
     this.onTap,
+    this.onLongPress,
   });
 
   final String imageUrl;
   final String? caption;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +262,7 @@ class _ImageBubble extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: _buildPreview(),
@@ -228,7 +273,7 @@ class _ImageBubble extends StatelessWidget {
           Text(
             caption!,
             style: TextStyle(
-              color: FcColors.darkGray,
+              color: context.colors.darkGray,
               fontSize: 13,
             ),
           ),
@@ -254,7 +299,7 @@ class _ImageBubble extends StatelessWidget {
         height: 220,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: FcColors.inputBg,
+          color: context.colors.inputBg,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const CircularProgressIndicator(),
@@ -263,10 +308,10 @@ class _ImageBubble extends StatelessWidget {
         height: 220,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: FcColors.inputBg,
+          color: context.colors.inputBg,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.broken_image, color: FcColors.gray),
+        child: Icon(Icons.broken_image, color: context.colors.gray),
       ),
     );
   }

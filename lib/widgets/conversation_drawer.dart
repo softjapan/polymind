@@ -1,16 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_chatgpt/constants.dart';
-import 'package:flutter_chatgpt/model/chatmodel.dart';
+import 'package:polymind/constants.dart';
+import 'package:polymind/model/chatmodel.dart';
 
-class ConversationDrawer extends ConsumerWidget {
+class ConversationDrawer extends ConsumerStatefulWidget {
   const ConversationDrawer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConversationDrawer> createState() =>
+      _ConversationDrawerState();
+}
+
+class _ConversationDrawerState extends ConsumerState<ConversationDrawer> {
+  String _query = '';
+
+  Future<void> _renameConversation(
+    ChatModel chatModel,
+    String id,
+    String currentTitle,
+  ) async {
+    final controller = TextEditingController(text: currentTitle);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename conversation'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.trim().isNotEmpty) {
+      await chatModel.renameConversation(id, result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final chatModel = ref.watch(chatProvider);
-    final conversations = chatModel.conversations;
+    final allConversations = chatModel.conversations;
     final currentId = chatModel.currentConversationId;
+    final conversations = _query.trim().isEmpty
+        ? allConversations
+        : allConversations
+            .where(
+              (c) => (c['title'] as String)
+                  .toLowerCase()
+                  .contains(_query.trim().toLowerCase()),
+            )
+            .toList();
 
     return Drawer(
       child: SafeArea(
@@ -21,15 +66,15 @@ class ConversationDrawer extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  Icon(Icons.chat_rounded, color: FcColors.accent),
+                  Icon(Icons.chat_rounded, color: context.colors.accent),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Conversations',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: FcColors.black,
+                        color: context.colors.black,
                       ),
                     ),
                   ),
@@ -50,8 +95,8 @@ class ConversationDrawer extends ConsumerWidget {
                   icon: const Icon(Icons.add),
                   label: const Text('New Chat'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: FcColors.accent,
-                    side: BorderSide(color: FcColors.border),
+                    foregroundColor: context.colors.accent,
+                    side: BorderSide(color: context.colors.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -60,6 +105,31 @@ class ConversationDrawer extends ConsumerWidget {
                 ),
               ),
             ),
+
+            if (allConversations.length > 4) ...[
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: TextField(
+                  onChanged: (v) => setState(() => _query = v),
+                  style: TextStyle(fontSize: 14, color: context.colors.black),
+                  decoration: InputDecoration(
+                    hintText: 'Search conversations',
+                    hintStyle: TextStyle(color: context.colors.gray),
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                    filled: true,
+                    fillColor: context.colors.inputBg,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 4),
             const Divider(height: 1),
 
@@ -68,8 +138,10 @@ class ConversationDrawer extends ConsumerWidget {
               child: conversations.isEmpty
                   ? Center(
                       child: Text(
-                        'No conversations yet',
-                        style: TextStyle(color: FcColors.gray),
+                        allConversations.isEmpty
+                            ? 'No conversations yet'
+                            : 'No matches',
+                        style: TextStyle(color: context.colors.gray),
                       ),
                     )
                   : ListView.builder(
@@ -125,7 +197,7 @@ class ConversationDrawer extends ConsumerWidget {
                           child: ListTile(
                             selected: isSelected,
                             selectedTileColor:
-                                FcColors.accent.withValues(alpha: 0.08),
+                                context.colors.accent.withValues(alpha: 0.08),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -154,7 +226,7 @@ class ConversationDrawer extends ConsumerWidget {
                                     ),
                                     decoration: BoxDecoration(
                                       color:
-                                          FcColors.accent.withValues(alpha: 0.1),
+                                          context.colors.accent.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -162,7 +234,7 @@ class ConversationDrawer extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w600,
-                                        color: FcColors.accent,
+                                        color: context.colors.accent,
                                       ),
                                     ),
                                   ),
@@ -172,10 +244,20 @@ class ConversationDrawer extends ConsumerWidget {
                                   _formatDate(updatedAt),
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: FcColors.darkGray,
+                                    color: context.colors.darkGray,
                                   ),
                                 ),
                               ],
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.more_vert,
+                                size: 18,
+                                color: context.colors.gray,
+                              ),
+                              onPressed: () =>
+                                  _renameConversation(chatModel, id, title),
+                              tooltip: 'Rename',
                             ),
                             onTap: () {
                               chatModel.loadConversation(id);

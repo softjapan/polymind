@@ -1,6 +1,6 @@
-# Flutter ChatGPT Client
+# PolyMind
 
-**マルチ LLM 対応のモダンなチャットクライアント — OpenAI & Ollama をシームレスに切り替え**
+**OSS なマルチプロバイダー AI チャットクライアント — OpenAI / Gemini / Claude / Ollama をシームレスに切り替え**
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.19+-02569B?logo=flutter) ![Riverpod](https://img.shields.io/badge/Riverpod-2.x-50C878?logo=dart) ![LangChain](https://img.shields.io/badge/LangChain-Dart-2e7d32) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
@@ -8,8 +8,8 @@
 
 ## 概要
 
-Flutter × Riverpod × LangChain で構築した、LINE 風 UI のチャットクライアントです。  
-OpenAI と Ollama（ローカル LLM）の両方に対応し、アプリ内の設定画面からプロバイダー・モデル・エンドポイントを自由に切り替えられます。
+Flutter × Riverpod × LangChain で構築した、LINE 風 UI のオープンソース AI チャットクライアントです。  
+OpenAI・Google Gemini・Anthropic Claude・Ollama（ローカル LLM）に対応し、アプリ内の設定画面からプロバイダー・モデル・エンドポイントを自由に切り替えられます。
 
 API キーは `flutter_secure_storage` で安全に保管され、チャット履歴は SQLite に永続化。会話の一覧・切り替え・削除をサイドドロワーから操作できます。
 
@@ -25,8 +25,8 @@ https://github.com/user-attachments/assets/fc89e894-818c-42a9-a589-b94df6c14388
 
 | 機能 | 説明 |
 |------|------|
-| **マルチ LLM 対応** | OpenAI API と Ollama（ローカル LLM）を設定画面から切り替え |
-| **リアルタイム・ストリーミング** | LangChain の `ChatOpenAI` / `ChatOllama` でトークン単位のストリーム描画 |
+| **マルチ LLM 対応** | OpenAI / Gemini / Claude / Ollama（ローカル LLM）を設定画面から切り替え |
+| **リアルタイム・ストリーミング** | LangChain の各 Chat モデルでトークン単位のストリーム描画 |
 | **画像生成** | `/image <prompt>` コマンドで OpenAI 画像生成 API を呼び出し、チャット内にサムネイル表示 |
 | **フルスクリーン画像ビューア** | ピンチズーム対応のプレビュー、ローカルへのダウンロード機能 |
 | **チャット履歴の永続化** | SQLite で会話・メッセージを保存、サイドドロワーから一覧・切り替え・削除 |
@@ -58,6 +58,8 @@ lib/
 │   ├── llm_repository.dart            # LLM 抽象インターフェース
 │   ├── openai_repository.dart         # OpenAI 実装（LangChain）
 │   ├── ollama_repository.dart         # Ollama 実装（LangChain）
+│   ├── gemini_repository.dart         # Gemini 実装（LangChain）
+│   ├── claude_repository.dart         # Claude 実装（LangChain）
 │   ├── secure_settings.dart           # flutter_secure_storage ラッパー
 │   └── chat_database.dart             # SQLite チャット履歴
 └── widgets/
@@ -84,7 +86,7 @@ lib/
 |----------|-----------|
 | UI | `flutter_markdown`, `flutter_svg`, `cached_network_image` |
 | 状態管理 | `flutter_riverpod` |
-| LLM 連携 | `langchain`, `langchain_openai`, `langchain_ollama` |
+| LLM 連携 | `langchain`, `langchain_openai`, `langchain_ollama`, `langchain_google`, `langchain_anthropic` |
 | シンタックスハイライト | `highlight` |
 | ストレージ | `sqflite`, `flutter_secure_storage`, `path_provider` |
 | ネットワーク | `http` |
@@ -108,16 +110,18 @@ flutter pub get
 flutter run
 ```
 
+> リポジトリ名は移行前の `flutter_chatgpt` のままです（別途リポジトリ名の変更が必要）。
+
 ### 初回設定
 
 `.env` ファイルは不要です。アプリ起動後、設定画面からプロバイダーを選択してください。
 
-| 項目 | OpenAI | Ollama |
-|------|--------|--------|
-| Endpoint | `https://api.openai.com/v1` | `http://localhost:11434` |
-| Model | `gpt-4o-mini-2024-07-18` 等 | `llama3.2` 等 |
-| Image Model | `gpt-image-1`（任意） | — |
-| API Key | 必須 | 不要 |
+| 項目 | OpenAI | Gemini | Claude | Ollama |
+|------|--------|--------|--------|--------|
+| Endpoint | `https://api.openai.com/v1` | `https://generativelanguage.googleapis.com` | `https://api.anthropic.com` | `http://localhost:11434` |
+| Model | `gpt-4o-mini-2024-07-18` 等 | `gemini-2.5-flash` 等 | `claude-sonnet-4-5` 等 | `llama3.2` 等 |
+| Image Model | `gpt-image-1`（任意） | — | — | — |
+| API Key | 必須 | 必須 | 必須 | 不要 |
 
 ---
 

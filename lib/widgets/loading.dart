@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_chatgpt/constants.dart';
+import 'package:polymind/constants.dart';
 
 class Loading extends StatefulWidget {
   const Loading({super.key, required this.text});
@@ -42,7 +42,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: FcColors.aiBubble,
+                color: context.colors.aiBubble,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(18),
@@ -64,7 +64,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
                   Text(
                     widget.text,
                     style: TextStyle(
-                      color: FcColors.darkGray,
+                      color: context.colors.darkGray,
                       fontSize: 14,
                     ),
                   ),
@@ -75,8 +75,10 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
                       animation: _controller,
                       builder: (context, child) {
                         return CustomPaint(
-                          painter:
-                              _WaveDotsPainter(progress: _controller.value),
+                          painter: _WaveDotsPainter(
+                            progress: _controller.value,
+                            accentColor: context.colors.accent,
+                          ),
                           size: const Size(60, 14),
                         );
                       },
@@ -94,9 +96,10 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
 }
 
 class _WaveDotsPainter extends CustomPainter {
-  const _WaveDotsPainter({required this.progress});
+  const _WaveDotsPainter({required this.progress, required this.accentColor});
 
   final double progress;
+  final Color accentColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -114,7 +117,7 @@ class _WaveDotsPainter extends CustomPainter {
       final phase = (progress * 2 * math.pi) + (i * 0.8);
       final yOffset = math.sin(phase) * amplitude;
       final opacity = 0.4 + 0.6 * ((math.sin(phase) + 1) / 2);
-      paint.color = FcColors.accent.withValues(alpha: opacity);
+      paint.color = accentColor.withValues(alpha: opacity);
 
       final dx = startX + (i * spacing);
       final dy = baseY - yOffset;

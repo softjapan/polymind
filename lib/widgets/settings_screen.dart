@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_chatgpt/constants.dart';
-import 'package:flutter_chatgpt/model/provider_config.dart';
-import 'package:flutter_chatgpt/model/chatmodel.dart';
+import 'package:polymind/constants.dart';
+import 'package:polymind/model/provider_config.dart';
+import 'package:polymind/model/chatmodel.dart';
+import 'package:polymind/repository/llm_repository.dart';
+import 'package:polymind/repository/openai_repository.dart';
+import 'package:polymind/repository/ollama_repository.dart';
+import 'package:polymind/repository/gemini_repository.dart';
+import 'package:polymind/repository/claude_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +23,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _modelController;
   late TextEditingController _imageModelController;
   late TextEditingController _apiKeyController;
+  late double _temperature;
+  bool _fetchingModels = false;
+
+  bool get _isOpenAi => _provider == LlmProvider.openai;
+  bool get _requiresApiKey => _provider != LlmProvider.ollama;
 
   @override
   void initState() {
@@ -30,6 +40,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _imageModelController =
         TextEditingController(text: config.imageModel ?? '');
     _apiKeyController = TextEditingController(text: config.apiKey ?? '');
+    _temperature = config.temperature;
   }
 
   @override
@@ -45,9 +56,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (provider == null) return;
     setState(() {
       _provider = provider;
-      final defaults = provider == LlmProvider.openai
-          ? ProviderConfig.defaultOpenAi
-          : ProviderConfig.defaultOllama;
+      final defaults = switch (provider) {
+        LlmProvider.openai => ProviderConfig.defaultOpenAi,
+        LlmProvider.ollama => ProviderConfig.defaultOllama,
+        LlmProvider.gemini => ProviderConfig.defaultGemini,
+        LlmProvider.claude => ProviderConfig.defaultClaude,
+      };
       _endpointController.text = defaults.endpoint;
       _modelController.text = defaults.model;
       _imageModelController.text = defaults.imageModel ?? '';
@@ -68,6 +82,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       apiKey: _apiKeyController.text.trim().isNotEmpty
           ? _apiKeyController.text.trim()
           : null,
+      temperature: _temperature,
     );
 
     await ref.read(chatProvider).updateConfig(config);
@@ -80,9 +95,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  LlmRepository _buildTempRepository(ProviderConfig config) {
+    switch (config.provider) {
+      case LlmProvider.openai:
+        return OpenAiRepository(config);
+      case LlmProvider.ollama:
+        return OllamaRepository(config);
+      case LlmProvider.gemini:
+        return GeminiRepository(config);
+      case LlmProvider.claude:
+        return ClaudeRepository(config);
+    }
+  }
+
+  Future<void> _fetchModels() async {
+    if (_requiresApiKey && _apiKeyController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an API key first')),
+      );
+      return;
+    }
+    if (_endpointController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an endpoint first')),
+      );
+      return;
+    }
+
+    setState(() => _fetchingModels = true);
+    try {
+      final config = ProviderConfig(
+        provider: _provider,
+        endpoint: _endpointController.text.trim(),
+        model: _modelController.text.trim(),
+        apiKey: _apiKeyController.text.trim().isNotEmpty
+            ? _apiKeyController.text.trim()
+            : null,
+      );
+      final repo = _buildTempRepository(config);
+      final models = await repo.listModels();
+
+      if (!mounted) return;
+      if (models.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No models found')),
+        );
+        return;
+      }
+
+      final selected = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        builder: (ctx) => _ModelPickerSheet(models: models),
+      );
+      if (selected != null) {
+        setState(() => _modelController.text = selected);
+      }
+    } catch (e) {
+      debugPrint('listModels error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to fetch models. Check endpoint and API key.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _fetchingModels = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isOpenAi = _provider == LlmProvider.openai;
+    final isOpenAi = _isOpenAi;
+    final requiresApiKey = _requiresApiKey;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -110,15 +195,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     value: LlmProvider.ollama,
                     child: Text('Ollama (Local)'),
                   ),
+                  DropdownMenuItem(
+                    value: LlmProvider.gemini,
+                    child: Text('Gemini'),
+                  ),
+                  DropdownMenuItem(
+                    value: LlmProvider.claude,
+                    child: Text('Claude'),
+                  ),
                 ],
                 onChanged: _onProviderChanged,
               ),
               const SizedBox(height: 6),
               Text(
-                isOpenAi
-                    ? 'Connects to OpenAI-compatible API endpoints.'
-                    : 'Connects to a local Ollama instance.',
-                style: TextStyle(fontSize: 12, color: FcColors.darkGray),
+                switch (_provider) {
+                  LlmProvider.openai =>
+                    'Connects to OpenAI-compatible API endpoints.',
+                  LlmProvider.ollama => 'Connects to a local Ollama instance.',
+                  LlmProvider.gemini => 'Connects to the Google Gemini API.',
+                  LlmProvider.claude => 'Connects to the Anthropic Claude API.',
+                },
+                style: TextStyle(fontSize: 12, color: context.colors.darkGray),
               ),
 
               const SizedBox(height: 24),
@@ -134,9 +231,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Required';
-                  if (_provider == LlmProvider.openai &&
+                  if (requiresApiKey &&
                       !v.trim().toLowerCase().startsWith('https://')) {
-                    return 'OpenAI endpoint must use HTTPS';
+                    return 'Endpoint must use HTTPS';
                   }
                   return null;
                 },
@@ -144,12 +241,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _modelController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Model',
-                  prefixIcon: Icon(Icons.smart_toy_outlined),
+                  prefixIcon: const Icon(Icons.smart_toy_outlined),
+                  suffixIcon: _fetchingModels
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          tooltip: 'Fetch model list',
+                          icon: const Icon(Icons.refresh_rounded),
+                          onPressed: _fetchModels,
+                        ),
                 ),
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Required' : null,
+              ),
+
+              const SizedBox(height: 20),
+              _SectionHeader(title: 'Generation'),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    'Temperature',
+                    style: TextStyle(fontSize: 14, color: context.colors.black),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _temperature.toStringAsFixed(2),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: context.colors.darkGray,
+                    ),
+                  ),
+                ],
+              ),
+              Slider(
+                value: _temperature,
+                min: 0.0,
+                max: 1.0,
+                divisions: 20,
+                onChanged: (v) => setState(() => _temperature = v),
+              ),
+              Text(
+                'Lower is more focused and deterministic; higher is more '
+                'creative and varied.',
+                style: TextStyle(fontSize: 12, color: context.colors.darkGray),
               ),
 
               if (isOpenAi) ...[
@@ -164,7 +307,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
 
-              if (isOpenAi) ...[
+              if (requiresApiKey) ...[
                 const SizedBox(height: 24),
 
                 // --- Authentication Section ---
@@ -178,8 +321,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     prefixIcon: Icon(Icons.key_outlined),
                   ),
                   validator: (v) {
-                    if (isOpenAi && (v == null || v.trim().isEmpty)) {
-                      return 'OpenAI requires an API key';
+                    if (requiresApiKey && (v == null || v.trim().isEmpty)) {
+                      return 'This provider requires an API key';
                     }
                     return null;
                   },
@@ -187,7 +330,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'Stored securely on device. Never sent to third parties.',
-                  style: TextStyle(fontSize: 12, color: FcColors.darkGray),
+                  style: TextStyle(fontSize: 12, color: context.colors.darkGray),
                 ),
               ],
 
@@ -207,6 +350,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 }
 
+class _ModelPickerSheet extends StatefulWidget {
+  const _ModelPickerSheet({required this.models});
+
+  final List<String> models;
+
+  @override
+  State<_ModelPickerSheet> createState() => _ModelPickerSheetState();
+}
+
+class _ModelPickerSheetState extends State<_ModelPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.models
+        .where((m) => m.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                autofocus: false,
+                decoration: const InputDecoration(
+                  labelText: 'Search models',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (v) => setState(() => _query = v),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filtered.length,
+                itemBuilder: (ctx, index) {
+                  final model = filtered[index];
+                  return ListTile(
+                    title: Text(model),
+                    onTap: () => Navigator.of(context).pop(model),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
 
@@ -219,7 +415,7 @@ class _SectionHeader extends StatelessWidget {
       style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: FcColors.darkGray,
+        color: context.colors.darkGray,
         letterSpacing: 0.5,
       ),
     );

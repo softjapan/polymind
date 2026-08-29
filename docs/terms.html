@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用規約 | PolyMind</title>
+<meta name="description" content="PolyMind アプリの利用規約">
+<style>
+  :root {
+    --bg: #FAFAFB;
+    --surface: #FFFFFF;
+    --text: #1A1A2E;
+    --text-muted: #5B5868;
+    --border: #E5E2ED;
+    --accent: #5B2FA6;
+    --accent-soft: #F1EAFB;
+    --shadow: 0 1px 2px rgba(26,26,46,0.04), 0 8px 24px rgba(26,26,46,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121016;
+      --surface: #1B1822;
+      --text: #ECEAF2;
+      --text-muted: #A9A3B8;
+      --border: #322C3D;
+      --accent: #B79CF0;
+      --accent-soft: #2A2135;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); }
+  .page { max-width: 700px; margin: 0 auto; padding: 72px 24px 120px; }
+  header.doc-head { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; margin-bottom: 40px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #3A2266 0%, #8B3DE6 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow); flex-shrink: 0;
+  }
+  .mark svg { width: 24px; height: 24px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  h1 {
+    font-family: ui-serif, "Iowan Old Style", "Hiragino Mincho ProN", "Palatino Linotype", Georgia, serif;
+    font-size: clamp(30px, 5vw, 40px); font-weight: 500; line-height: 1.25;
+    margin: 4px 0 0; text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .meta { font-size: 14px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); margin-bottom: 48px; }
+  .summary-card h2 { font-family: ui-serif, "Hiragino Mincho ProN", Georgia, serif; font-size: 18px; font-weight: 600; margin: 0 0 16px; }
+  .summary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .summary-list li { display: flex; gap: 12px; font-size: 15px; }
+  .summary-list .dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 9px; }
+  .summary-list b { font-weight: 600; }
+  .summary-list span.sub { color: var(--text-muted); }
+  nav.quicknav { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  nav.quicknav a { font-size: 13px; color: var(--text-muted); text-decoration: none; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; transition: color 0.15s ease, border-color 0.15s ease; }
+  nav.quicknav a:hover { color: var(--accent); border-color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  section.doc-section { margin-bottom: 44px; scroll-margin-top: 24px; }
+  section.doc-section h2 {
+    font-family: ui-serif, "Hiragino Mincho ProN", "Iowan Old Style", Georgia, serif;
+    font-size: 21px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: baseline; gap: 10px;
+  }
+  section.doc-section h2 .num { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+  section.doc-section p { margin: 0 0 14px; max-width: 62ch; }
+  section.doc-section ul, section.doc-section ol { margin: 0 0 14px; padding-left: 22px; max-width: 62ch; }
+  section.doc-section li { margin-bottom: 8px; }
+  section.doc-section a { color: var(--accent); }
+  .callout { background: var(--accent-soft); border-radius: 12px; padding: 16px 18px; font-size: 14px; max-width: 62ch; }
+  footer.doc-foot { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; }
+  footer.doc-foot a { color: var(--text-muted); }
+  @media (max-width: 520px) { .page { padding: 48px 18px 96px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="doc-head">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#fff" fill-opacity="0.96">
+          <circle cx="50" cy="28" r="19"/><circle cx="72" cy="50" r="19"/>
+          <circle cx="50" cy="72" r="19"/><circle cx="28" cy="50" r="19"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="eyebrow">Terms of Service</div>
+      <h1>PolyMind 利用規約</h1>
+    </div>
+    <div class="meta">最終更新日: 2026年8月29日</div>
+  </header>
+
+  <div class="summary-card">
+    <h2>3行でわかる概要</h2>
+    <ul class="summary-list">
+      <li><span class="dot"></span><span><b>PolyMind は「Bring Your Own Key」方式のクライアントです。</b><span class="sub"> 各AIプロバイダーとの契約・利用料金はご自身の責任で管理していただきます。</span></span></li>
+      <li><span class="dot"></span><span><b>AI生成コンテンツの内容は保証されません。</b><span class="sub"> 応答・画像は接続先AIプロバイダーが生成するもので、その正確性・適法性を当方は保証しません。</span></span></li>
+      <li><span class="dot"></span><span><b>本アプリは現状有姿で無償提供されます。</b><span class="sub"> オープンソースソフトウェアとして、明示・黙示を問わずいかなる保証もありません。</span></span></li>
+    </ul>
+  </div>
+
+  <nav class="quicknav" aria-label="目次">
+    <a href="#acceptance">総則</a>
+    <a href="#service">サービス内容</a>
+    <a href="#apikeys">APIキーと利用料金</a>
+    <a href="#prohibited">禁止事項</a>
+    <a href="#ai-disclaimer">AI生成コンテンツに関する免責</a>
+    <a href="#warranty">保証の否認・責任制限</a>
+    <a href="#ip">知的財産権</a>
+    <a href="#changes">規約の変更</a>
+    <a href="#law">準拠法・裁判管轄</a>
+    <a href="#contact">お問い合わせ</a>
+  </nav>
+
+  <section class="doc-section" id="acceptance">
+    <h2><span class="num">01</span>総則</h2>
+    <p>本規約は、softbase（以下「当方」）が提供するアプリケーション「PolyMind」（以下「本アプリ」）の利用条件を定めるものです。本アプリをダウンロード・利用した時点で、ユーザーは本規約に同意したものとみなします。</p>
+  </section>
+
+  <section class="doc-section" id="service">
+    <h2><span class="num">02</span>サービス内容</h2>
+    <p>本アプリは、ユーザー自身が用意したAPIキーを用いて、OpenAI・Google Gemini・Anthropic Claude・Ollama（ローカルLLM）など外部のAIプロバイダーと端末から直接通信するクライアントアプリです。当方は本アプリの提供にあたり独自のサーバーを運営しておらず、本アプリを通じて送受信される会話内容やAPIキーを収集・保存・閲覧することはありません。詳細は<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+  </section>
+
+  <section class="doc-section" id="apikeys">
+    <h2><span class="num">03</span>APIキーと利用料金</h2>
+    <p>ユーザーは、自己の責任において各AIプロバイダーとの契約およびAPIキーの取得を行うものとします。各プロバイダーの利用料金は各社の規定に従うものとし、当方はその金額・課金方式について一切関与しません。APIキーの管理（第三者への漏洩防止を含む）についてもユーザー自身の責任で行ってください。</p>
+  </section>
+
+  <section class="doc-section" id="prohibited">
+    <h2><span class="num">04</span>禁止事項</h2>
+    <ul>
+      <li>法令または公序良俗に違反する行為</li>
+      <li>当方・第三者の知的財産権、プライバシー、名誉その他の権利を侵害する行為</li>
+      <li>接続先AIプロバイダーの利用規約・利用ポリシーに違反する行為</li>
+      <li>本アプリの不正な改変、リバースエンジニアリング（オープンソースライセンスで許容される範囲を除く）</li>
+      <li>その他、当方が不適切と判断する行為</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" id="ai-disclaimer">
+    <h2><span class="num">05</span>AI生成コンテンツに関する免責</h2>
+    <p>本アプリを通じて生成される応答・画像等のコンテンツは、ユーザーが選択した接続先AIプロバイダーが生成するものであり、当方が内容を作成・監修するものではありません。生成されるコンテンツの正確性・完全性・適法性・有用性について、当方は一切保証しません。生成されたコンテンツの利用は、ユーザー自身の判断と責任において行ってください。</p>
+  </section>
+
+  <section class="doc-section" id="warranty">
+    <h2><span class="num">06</span>保証の否認・責任制限</h2>
+    <p>本アプリは現状有姿（AS IS）で提供され、当方は明示または黙示を問わず、商品性、特定目的への適合性、権利の非侵害を含むいかなる保証も行いません。当方は、本アプリの利用または利用不能により生じたいかなる損害（接続先AIプロバイダーとの間で生じた課金トラブルを含みますがこれに限りません）についても、法令上許容される最大限の範囲で責任を負いません。</p>
+  </section>
+
+  <section class="doc-section" id="ip">
+    <h2><span class="num">07</span>知的財産権</h2>
+    <p>本アプリはオープンソースソフトウェアとして公開されており、リポジトリに記載のライセンス条件に従うものとします。</p>
+    <div class="callout">ソースコード: <a href="https://github.com/softjapan/polymind" target="_blank" rel="noopener">github.com/softjapan/polymind</a></div>
+  </section>
+
+  <section class="doc-section" id="changes">
+    <h2><span class="num">08</span>規約の変更</h2>
+    <p>当方は、必要と判断した場合には本規約を変更できるものとします。変更後の規約は、本ページに掲載した時点から効力を生じるものとし、上部の「最終更新日」を更新します。重要な変更がある場合は、可能な範囲でアプリ内または他の適切な方法で周知するよう努めます。</p>
+  </section>
+
+  <section class="doc-section" id="law">
+    <h2><span class="num">09</span>準拠法・裁判管轄</h2>
+    <p>本規約の解釈にあたっては日本法を準拠法とします。本アプリに関して当方とユーザーとの間で紛争が生じた場合には、当方所在地を管轄する裁判所を第一審の専属的合意管轄裁判所とします。</p>
+  </section>
+
+  <section class="doc-section" id="contact">
+    <h2><span class="num">10</span>お問い合わせ</h2>
+    <div class="callout">本規約に関するご質問は、<a href="https://github.com/softjapan/polymind/issues" target="_blank" rel="noopener">GitHub Issues</a>までご連絡ください。</div>
+  </section>
+
+  <footer class="doc-foot">
+    <span>PolyMind — OSS ・ Flutter製のマルチプロバイダーAIチャットクライアント</span>
+    <a href="privacy.html">プライバシーポリシー</a>
+  </footer>
+</div>
+</body>
+</html>

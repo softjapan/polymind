@@ -1,7 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'package:flutter_chatgpt/model/chat_message.dart';
+import 'package:polymind/model/chat_message.dart';
 
 /// SQLite によるチャット履歴永続化
 class ChatDatabase {
@@ -18,7 +18,7 @@ class ChatDatabase {
     final dbPath = await getDatabasesPath();
     return openDatabase(
       join(dbPath, 'chat_history.db'),
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE conversations (
@@ -39,11 +39,19 @@ class ChatDatabase {
             status TEXT NOT NULL,
             image_url TEXT,
             alt_text TEXT,
+            user_image_path TEXT,
             created_at INTEGER NOT NULL,
             FOREIGN KEY (conversation_id) REFERENCES conversations(id)
               ON DELETE CASCADE
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE messages ADD COLUMN user_image_path TEXT',
+          );
+        }
       },
     );
   }
@@ -116,6 +124,7 @@ class ChatDatabase {
       'status': message.status.name,
       'image_url': message.imageUrl,
       'alt_text': message.altText,
+      'user_image_path': message.userImagePath,
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
   }
@@ -141,6 +150,11 @@ class ChatDatabase {
     );
   }
 
+  Future<void> deleteMessage(String id) async {
+    final db = await database;
+    await db.delete('messages', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<ChatMessage>> getMessages(String conversationId) async {
     final db = await database;
     final rows = await db.query(
@@ -161,6 +175,7 @@ class ChatDatabase {
           .firstWhere((e) => e.name == row['status']),
       imageUrl: row['image_url'] as String?,
       altText: row['alt_text'] as String?,
+      userImagePath: row['user_image_path'] as String?,
     );
   }
 }

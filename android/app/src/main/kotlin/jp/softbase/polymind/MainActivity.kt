@@ -1,4 +1,4 @@
-package jp.softbase.flutter_chatgpt
+package jp.softbase.polymind
 
 import io.flutter.embedding.android.FlutterActivity
 

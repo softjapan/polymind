@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chatgpt/constants.dart';
-import 'package:flutter_chatgpt/model/chatmodel.dart';
-import 'package:flutter_chatgpt/model/chat_message.dart';
+import 'package:polymind/constants.dart';
+import 'package:polymind/model/chatmodel.dart';
+import 'package:polymind/model/chat_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_chatgpt/widgets/ai_message.dart';
-import 'package:flutter_chatgpt/widgets/loading.dart';
-import 'package:flutter_chatgpt/widgets/user_input.dart';
-import 'package:flutter_chatgpt/widgets/user_message.dart';
-import 'package:flutter_chatgpt/widgets/settings_screen.dart';
-import 'package:flutter_chatgpt/widgets/conversation_drawer.dart';
+import 'package:polymind/widgets/ai_message.dart';
+import 'package:polymind/widgets/loading.dart';
+import 'package:polymind/widgets/user_input.dart';
+import 'package:polymind/widgets/user_message.dart';
+import 'package:polymind/widgets/settings_screen.dart';
+import 'package:polymind/widgets/conversation_drawer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +21,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter ChatGPT',
-      theme: appTheme(),
+      title: 'PolyMind',
+      theme: appTheme(Brightness.light),
+      darkTheme: appTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
       home: const _HomePage(),
     );
@@ -113,7 +115,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: FcColors.accent.withValues(alpha: 0.12),
+                    color: context.colors.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -121,7 +123,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: FcColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 ),
@@ -153,6 +155,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
           scrollController: _scrollController,
           chatController: _chatController,
           messages: chatModel.messages,
+          chatModel: chatModel,
         ),
       ),
     );
@@ -164,11 +167,13 @@ class _ChatBody extends StatelessWidget {
     required this.scrollController,
     required this.chatController,
     required this.messages,
+    required this.chatModel,
   });
 
   final ScrollController scrollController;
   final TextEditingController chatController;
   final List<ChatMessage> messages;
+  final ChatModel chatModel;
 
   @override
   Widget build(BuildContext context) {
@@ -184,13 +189,17 @@ class _ChatBody extends StatelessWidget {
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             child: messages.isEmpty
-                ? const _EmptyState()
+                ? _EmptyState(
+                    supportsImageGeneration: chatModel.supportsImageGeneration,
+                  )
                 : ListView.builder(
                   controller: scrollController,
                   padding: const EdgeInsets.only(top: 8, bottom: 8),
                   itemCount: messages.length,
-                  itemBuilder: (context, index) =>
-                      _buildMessageWidget(messages[index]),
+                  itemBuilder: (context, index) => _buildMessageWidget(
+                    messages[index],
+                    isLast: index == messages.length - 1,
+                  ),
                 ),
           ),
         ),
@@ -199,10 +208,16 @@ class _ChatBody extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageWidget(ChatMessage message) {
+  Widget _buildMessageWidget(ChatMessage message, {required bool isLast}) {
     switch (message.sender) {
       case ChatSender.user:
-        return UserMessage(key: ValueKey(message.id), text: message.text);
+        return UserMessage(
+          key: ValueKey(message.id),
+          text: message.text,
+          imagePath: message.userImagePath,
+          onEdit: (newText) => chatModel.editAndResend(message.id, newText),
+          onDelete: () => chatModel.deleteMessage(message.id),
+        );
       case ChatSender.assistant:
         if (message.isLoading) {
           return Loading(key: ValueKey(message.id), text: message.text);
@@ -213,6 +228,10 @@ class _ChatBody extends StatelessWidget {
           imageUrl: message.imageUrl,
           altText: message.altText,
           isStreaming: message.isStreaming,
+          onDelete: () => chatModel.deleteMessage(message.id),
+          onRegenerate: isLast && !message.isStreaming
+              ? () => chatModel.regenerateLastResponse()
+              : null,
         );
     }
   }
@@ -220,7 +239,9 @@ class _ChatBody extends StatelessWidget {
 
 /// Item 5: Empty state with welcome message
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.supportsImageGeneration});
+
+  final bool supportsImageGeneration;
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +254,7 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.chat_bubble_outline_rounded,
               size: 64,
-              color: FcColors.gray,
+              color: context.colors.gray,
             ),
             const SizedBox(height: 16),
             Text(
@@ -241,17 +262,19 @@ class _EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: FcColors.darkGray,
+                color: context.colors.darkGray,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Type a message below to chat with AI.\n'
-              'Use /image <prompt> to generate images.',
+              supportsImageGeneration
+                  ? 'Type a message below to chat with AI.\n'
+                      'Use /image <prompt> to generate images.'
+                  : 'Type a message below to chat with AI.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: FcColors.gray,
+                color: context.colors.gray,
                 height: 1.5,
               ),
             ),

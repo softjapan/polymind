@@ -1,11 +1,11 @@
 {
-    "name": "flutter_chatgpt",
-    "short_name": "flutter_chatgpt",
+    "name": "PolyMind",
+    "short_name": "PolyMind",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A lightweight ChatGPT client built with Flutter and powered by the OpenAI API.",
+    "description": "An open-source, multi-provider AI chat client (OpenAI, Gemini, Claude, Ollama) built with Flutter.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -32,6 +32,7 @@ class ChatMessage {
     required this.status,
     this.imageUrl,
     this.altText,
+    this.userImagePath,
   });
 
   /// メッセージを一意に識別する ID
@@ -49,6 +50,9 @@ class ChatMessage {
   /// 画像の説明や代替テキスト
   final String? altText;
 
+  /// ユーザーが添付した画像のローカルファイルパス（Vision 入力用）
+  final String? userImagePath;
+
   /// メッセージの状態
   final ChatMessageStatus status;
 
@@ -64,6 +68,9 @@ class ChatMessage {
   /// 画像メッセージかどうか
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
 
+  /// ユーザーが画像を添付しているかどうか
+  bool get hasUserImage => userImagePath != null && userImagePath!.isNotEmpty;
+
   /// メッセージのコピーを作成
   ChatMessage copyWith({
     String? id,
@@ -72,6 +79,7 @@ class ChatMessage {
     ChatMessageStatus? status,
     String? imageUrl,
     String? altText,
+    String? userImagePath,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -79,6 +87,7 @@ class ChatMessage {
       text: text ?? this.text,
       imageUrl: imageUrl ?? this.imageUrl,
       altText: altText ?? this.altText,
+      userImagePath: userImagePath ?? this.userImagePath,
       status: status ?? this.status,
     );
   }

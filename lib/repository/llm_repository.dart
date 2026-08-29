@@ -1,4 +1,4 @@
-import 'package:flutter_chatgpt/model/chat_message.dart';
+import 'package:polymind/model/chat_message.dart';
 
 /// LLM プロバイダーの抽象インターフェース
 abstract class LlmRepository {
@@ -13,4 +13,7 @@ abstract class LlmRepository {
 
   /// 画像生成をサポートしているか
   bool get supportsImageGeneration;
+
+  /// 利用可能なモデル一覧を取得
+  Future<List<String>> listModels();
 }

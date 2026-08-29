@@ -4,10 +4,14 @@
 *.pyc
 *.swp
 .DS_Store
+CLAUDE.md
+.serena/
 .atom/
+.build/
 .buildlog/
 .history
 .svn/
+.swiftpm/
 migrate_working_dir/
 
 # IntelliJ related
