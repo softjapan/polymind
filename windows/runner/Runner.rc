@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "jp.softbase" "\0"
-            VALUE "FileDescription", "flutter_chatgpt" "\0"
+            VALUE "FileDescription", "PolyMind" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "flutter_chatgpt" "\0"
+            VALUE "InternalName", "PolyMind" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 jp.softbase. All rights reserved." "\0"
-            VALUE "OriginalFilename", "flutter_chatgpt.exe" "\0"
-            VALUE "ProductName", "flutter_chatgpt" "\0"
+            VALUE "OriginalFilename", "polymind.exe" "\0"
+            VALUE "ProductName", "PolyMind" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

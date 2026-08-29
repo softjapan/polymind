@@ -1,5 +1,5 @@
-name: flutter_chatgpt
-description: A lightweight ChatGPT client built with Flutter and powered by the OpenAI API.
+name: polymind
+description: An open-source, multi-provider AI chat client (OpenAI, Gemini, Claude, Ollama) built with Flutter.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -17,10 +17,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: '>=3.8.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,24 +31,23 @@ environment:
 dependencies:
   cached_network_image: ^3.2.3
   cupertino_icons: ^1.0.5
-  dartdoc: ^8.0.8
   flutter:
     sdk: flutter
-  flutter_chat_types: ^3.6.0
-  flutter_chat_ui: ^1.6.6
-# To automatically upgrade your package dependencies to the latest versions
   flutter_markdown: ^0.7.4+3
-  file_picker: ^8.0.5
-  flutter_svg: ^2.0.10+1
+  highlight: ^0.7.0
   http: ^1.2.2
   image_picker: ^1.0.0
-  mime: ^2.0.0
   flutter_riverpod: ^2.3.6
   uuid: ^4.5.1
-  flutter_dotenv: ^5.0.2
-  langchain: ^0.7.7+2
-  langchain_openai: ^0.7.3
+  flutter_secure_storage: ^9.2.4
+  langchain: ^0.9.0
+  langchain_openai: ^0.9.0
+  langchain_ollama: ^0.5.0
+  langchain_google: ^0.8.0
+  langchain_anthropic: ^0.4.0
   path_provider: ^2.1.5
+  sqflite: ^2.4.1
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0
@@ -74,10 +73,6 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-    - images/
-    - .env
-
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

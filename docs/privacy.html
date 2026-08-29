@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プライバシーポリシー | PolyMind</title>
+<meta name="description" content="PolyMind アプリのプライバシーポリシー">
+<style>
+  :root {
+    --bg: #FAFAFB;
+    --surface: #FFFFFF;
+    --text: #1A1A2E;
+    --text-muted: #5B5868;
+    --border: #E5E2ED;
+    --accent: #5B2FA6;
+    --accent-soft: #F1EAFB;
+    --shadow: 0 1px 2px rgba(26,26,46,0.04), 0 8px 24px rgba(26,26,46,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121016;
+      --surface: #1B1822;
+      --text: #ECEAF2;
+      --text-muted: #A9A3B8;
+      --border: #322C3D;
+      --accent: #B79CF0;
+      --accent-soft: #2A2135;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); }
+  .page { max-width: 700px; margin: 0 auto; padding: 72px 24px 120px; }
+  header.doc-head { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; margin-bottom: 40px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #3A2266 0%, #8B3DE6 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow); flex-shrink: 0;
+  }
+  .mark svg { width: 24px; height: 24px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  h1 {
+    font-family: ui-serif, "Iowan Old Style", "Hiragino Mincho ProN", "Palatino Linotype", Georgia, serif;
+    font-size: clamp(30px, 5vw, 40px); font-weight: 500; line-height: 1.25;
+    margin: 4px 0 0; text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .meta { font-size: 14px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); margin-bottom: 48px; }
+  .summary-card h2 { font-family: ui-serif, "Hiragino Mincho ProN", Georgia, serif; font-size: 18px; font-weight: 600; margin: 0 0 16px; }
+  .summary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .summary-list li { display: flex; gap: 12px; font-size: 15px; }
+  .summary-list .dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 9px; }
+  .summary-list b { font-weight: 600; }
+  .summary-list span.sub { color: var(--text-muted); }
+  nav.quicknav { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  nav.quicknav a { font-size: 13px; color: var(--text-muted); text-decoration: none; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; transition: color 0.15s ease, border-color 0.15s ease; }
+  nav.quicknav a:hover { color: var(--accent); border-color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  section.doc-section { margin-bottom: 44px; scroll-margin-top: 24px; }
+  section.doc-section h2 {
+    font-family: ui-serif, "Hiragino Mincho ProN", "Iowan Old Style", Georgia, serif;
+    font-size: 21px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: baseline; gap: 10px;
+  }
+  section.doc-section h2 .num { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+  section.doc-section p { margin: 0 0 14px; max-width: 62ch; }
+  section.doc-section ul { margin: 0 0 14px; padding-left: 22px; max-width: 62ch; }
+  section.doc-section li { margin-bottom: 8px; }
+  section.doc-section a { color: var(--accent); }
+  .provider-table { width: 100%; max-width: 62ch; border-collapse: collapse; font-size: 14px; margin: 4px 0 18px; overflow-x: auto; display: block; }
+  .provider-table thead { display: table-header-group; }
+  .provider-table tbody { display: table-row-group; }
+  .provider-table tr { display: table-row; }
+  .provider-table th, .provider-table td { display: table-cell; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .provider-table th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  .callout { background: var(--accent-soft); border-radius: 12px; padding: 16px 18px; font-size: 14px; max-width: 62ch; }
+  footer.doc-foot { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; }
+  footer.doc-foot a { color: var(--text-muted); }
+  @media (max-width: 520px) { .page { padding: 48px 18px 96px; } .provider-table { font-size: 13px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="doc-head">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#fff" fill-opacity="0.96">
+          <circle cx="50" cy="28" r="19"/><circle cx="72" cy="50" r="19"/>
+          <circle cx="50" cy="72" r="19"/><circle cx="28" cy="50" r="19"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="eyebrow">Privacy Policy</div>
+      <h1>PolyMind プライバシーポリシー</h1>
+    </div>
+    <div class="meta">最終更新日: 2026年8月29日</div>
+  </header>
+
+  <div class="summary-card">
+    <h2>3行でわかる概要</h2>
+    <ul class="summary-list">
+      <li><span class="dot"></span><span><b>PolyMind に自前のサーバーはありません。</b><span class="sub"> あなたの端末と、あなたが選んだAIプロバイダーの間を直接つなぐクライアントです。</span></span></li>
+      <li><span class="dot"></span><span><b>開発者はAPIキー・会話内容・履歴を一切収集しません。</b><span class="sub"> 見ることも保存することもできません。</span></span></li>
+      <li><span class="dot"></span><span><b>広告・解析・トラッキングSDKは一切組み込まれていません。</b></span></li>
+    </ul>
+  </div>
+
+  <nav class="quicknav" aria-label="目次">
+    <a href="#data">扱うデータ</a>
+    <a href="#providers">接続先プロバイダー</a>
+    <a href="#nocollect">収集しないもの</a>
+    <a href="#choices">あなたにできること</a>
+    <a href="#children">お子様のプライバシー</a>
+    <a href="#changes">改定について</a>
+    <a href="#contact">お問い合わせ</a>
+  </nav>
+
+  <section class="doc-section" id="data">
+    <h2><span class="num">01</span>PolyMind が扱うデータと、その行き先</h2>
+    <p><b>APIキー</b> — 設定画面で入力したAPIキーは、端末のセキュアな認証情報ストレージ（iOS/macOSのKeychain、Androidの EncryptedSharedPreferences）にのみ保存されます。送信先は、あなたが選択したAIプロバイダーへのリクエストヘッダーのみで、開発者やその他の第三者に送られることはありません。</p>
+    <p><b>チャットメッセージ</b> — メッセージを送信すると、設定画面で選んだAIプロバイダーへHTTPS経由で端末から直接送信されます。開発者が運営するサーバーはこの経路に存在せず、内容を見ることもできません。</p>
+    <p><b>会話履歴</b> — 過去の会話を見返せるよう、端末内のローカルデータベース（SQLite）に保存されます。開発者のサーバーへアップロードされることはありません。会話を削除するとローカルから即座に消え、アプリをアンインストールするとすべてのローカルデータが失われます。</p>
+    <p><b>生成された画像</b> — <code>/image</code>コマンド（OpenAI利用時のみ）で生成した画像はチャット内に表示され、「ダウンロード」を明示的にタップした場合のみ端末のローカルストレージに保存されます。それ以外の場所にアップロードされることはありません。</p>
+  </section>
+
+  <section class="doc-section" id="providers">
+    <h2><span class="num">02</span>接続先プロバイダー</h2>
+    <p>送信したメッセージは、設定したプロバイダー自身のプライバシーポリシーに従って処理されます。</p>
+    <table class="provider-table">
+      <thead><tr><th>プロバイダー</th><th>プライバシーポリシー</th></tr></thead>
+      <tbody>
+        <tr><td>OpenAI</td><td><a href="https://openai.com/privacy" target="_blank" rel="noopener">openai.com/privacy</a></td></tr>
+        <tr><td>Google (Gemini API)</td><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
+        <tr><td>Anthropic (Claude)</td><td><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">anthropic.com/legal/privacy</a></td></tr>
+        <tr><td>Ollama（自己ホスト）</td><td>あなたが運用するサーバー次第。自身のネットワーク外にはデータが出ません。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section" id="nocollect">
+    <h2><span class="num">03</span>収集しないもの</h2>
+    <p>PolyMind には、解析SDK・クラッシュレポート・広告識別子・その他のテレメトリは一切含まれていません。第三者の広告・解析SDKも組み込まれていません。</p>
+  </section>
+
+  <section class="doc-section" id="choices">
+    <h2><span class="num">04</span>あなたにできること</h2>
+    <ul>
+      <li>設定画面からいつでもAPIキーを変更・削除できます</li>
+      <li>会話一覧から個別の会話を削除できます</li>
+      <li>アプリをアンインストールすると、保存されたAPIキーと会話履歴を含むすべてのローカルデータが削除されます</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" id="children">
+    <h2><span class="num">05</span>お子様のプライバシーについて</h2>
+    <p>PolyMind はお子様を対象としたアプリではなく、意図的にお子様の情報を収集することはありません。接続先のAIプロバイダーそれぞれに利用年齢に関する規約があるため、利用前に各社の規約もご確認ください。</p>
+  </section>
+
+  <section class="doc-section" id="changes">
+    <h2><span class="num">06</span>本ポリシーの改定について</h2>
+    <p>本ポリシーを変更する場合は、この同じURLで更新版を公開し、上部の「最終更新日」を更新します。</p>
+  </section>
+
+  <section class="doc-section" id="contact">
+    <h2><span class="num">07</span>お問い合わせ</h2>
+    <div class="callout">本ポリシーに関するご質問は、<a href="https://github.com/softjapan/polymind/issues" target="_blank" rel="noopener">GitHub Issues</a>までご連絡ください。</div>
+  </section>
+
+  <footer class="doc-foot">
+    <span>PolyMind — OSS ・ Flutter製のマルチプロバイダーAIチャットクライアント</span>
+    <a href="terms.html">利用規約</a>
+  </footer>
+</div>
+</body>
+</html>

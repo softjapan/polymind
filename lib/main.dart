@@ -1,238 +1,226 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chatgpt/constants.dart';
-import 'package:flutter_chatgpt/model/chatmodel.dart';
-import 'package:flutter_chatgpt/model/chat_message.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:polymind/constants.dart';
+import 'package:polymind/model/chatmodel.dart';
+import 'package:polymind/model/chat_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_chatgpt/widgets/ai_message.dart';
-import 'package:flutter_chatgpt/widgets/loading.dart';
-import 'package:flutter_chatgpt/widgets/user_input.dart';
-import 'package:flutter_chatgpt/widgets/user_message.dart';
+import 'package:polymind/widgets/ai_message.dart';
+import 'package:polymind/widgets/loading.dart';
+import 'package:polymind/widgets/user_input.dart';
+import 'package:polymind/widgets/user_message.dart';
+import 'package:polymind/widgets/settings_screen.dart';
+import 'package:polymind/widgets/conversation_drawer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
   runApp(const ProviderScope(child: MyApp()));
 }
 
-/// Main app class
-class MyApp extends StatefulWidget {
-  /// Constructor
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'PolyMind',
+      theme: appTheme(Brightness.light),
+      darkTheme: appTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      home: const _HomePage(),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class _HomePage extends ConsumerStatefulWidget {
+  const _HomePage();
+
+  @override
+  ConsumerState<_HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<_HomePage> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _chatController = TextEditingController();
+  bool _hasOpenedSettings = false;
 
   @override
   void initState() {
     super.initState();
-    // 初期化後にコールバックを設定
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final container = ProviderScope.containerOf(context);
-      final chatModel = container.read(chatProvider);
+      final chatModel = ref.read(chatProvider);
       chatModel.setScrollCallback(_scrollToBottom);
-      chatModel.setUpdateCallback(_scrollToBottomForStream);
+      chatModel.setUpdateCallback(_scrollToBottom);
     });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _chatController.dispose();
     super.dispose();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      // 即座にスクロール
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-
-      // レンダリング完了後に再度スクロール
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-
-      // 遅延後に再度スクロール
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-    }
+    if (!_scrollController.hasClients) return;
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
   }
 
-  void _scrollWithRetryForStream(int attempt) {
-    if (!_scrollController.hasClients) {
-      print(
-          'DEBUG: Stream scroll - ScrollController lost clients during retry attempt $attempt');
-      return;
-    }
-
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    print(
-        'DEBUG: Stream scroll attempt $attempt, maxScrollExtent: $maxScroll, current: $currentScroll');
-
-    // 常に一番上にスクロール（maxScrollExtentの値に関係なく）
-    print('DEBUG: Stream scrolling to top (position 0)');
-    _scrollController.jumpTo(0.0);
-    print(
-        'DEBUG: Stream scroll completed, new position: ${_scrollController.position.pixels}');
-  }
-
-  void _scrollToBottomForStream() {
-    if (_scrollController.hasClients) {
-      // 即座にスクロール
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-
-      // Stream更新用のスクロール（一番下にスクロール）
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-
-      // 追加のスクロール処理（レイアウト完了後に実行）
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-
-      // さらに遅延後にスクロール
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-    }
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final chatcontroller = TextEditingController();
+    final chatModel = ref.watch(chatProvider);
 
-    return MaterialApp(
-      title: 'Flutter ChatGPT',
-      home: SafeArea(
-        top: false,
-        child: Scaffold(
-          backgroundColor: FcColors.skyblue,
-          appBar: AppBar(
-            backgroundColor: FcColors.white,
-            leading: IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.menu,
-                color: FcColors.black,
-              ),
+    // 初期化完了まではローディング表示
+    if (!chatModel.isInitialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!chatModel.isConfigured && !_hasOpenedSettings) {
+      _hasOpenedSettings = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openSettings();
+      });
+    }
+
+    final providerName = chatModel.config?.provider.name.toUpperCase();
+    final modelName = chatModel.config?.model ?? 'Not configured';
+
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Builder(
+            builder: (ctx) => IconButton(
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+              icon: const Icon(Icons.menu_rounded),
             ),
-            elevation: 0,
-            title: Text(_modelName),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.edit,
-                  color: FcColors.black,
-                ),
-              ),
-              Consumer(
-                builder: (context, ref, child) {
-                  return IconButton(
-                    onPressed: () {
-                      final chatModel = ref.read(chatProvider);
-                      chatModel.addUserMessage('Test message');
-
-                      // ストリーミング更新をシミュレート
-                      Future.delayed(const Duration(milliseconds: 1000), () {
-                        chatModel.simulateMultipleStreamingUpdates([
-                          'Hello',
-                          'Hello, this',
-                          'Hello, this is',
-                          'Hello, this is a',
-                          'Hello, this is a streaming',
-                          'Hello, this is a streaming test',
-                          'Hello, this is a streaming test message',
-                          'Hello, this is a streaming test message that should auto-scroll as it updates.',
-                          'Hello, this is a streaming test message that should auto-scroll as it updates. This is a longer message to ensure scrolling is needed.',
-                          'Hello, this is a streaming test message that should auto-scroll as it updates. This is a longer message to ensure scrolling is needed. The scroll should happen automatically with each update.'
-                        ]);
-                      });
-                    },
-                    icon: const Icon(
-                      Icons.play_arrow,
-                      color: FcColors.black,
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (providerName != null) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: context.colors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    providerName,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: context.colors.accent,
                     ),
-                  );
-                },
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  modelName,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          body: Consumer(builder: (context, ref, child) {
-            final chatModel = ref.watch(chatProvider);
-            final messages = chatModel.messages;
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) {
-                return;
-              }
-              if (_scrollController.hasClients) {
-                _scrollController
-                    .jumpTo(_scrollController.position.maxScrollExtent);
-              }
-            });
-
-            return Stack(
-              children: [
-                //chat
-                Container(
-                  margin: const EdgeInsets.only(bottom: 80),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: messages.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const Divider(
-                          color: FcColors.gray,
-                        );
-                      }
-                      final message = messages[index - 1];
-                      return _buildMessageWidget(message);
-                    },
-                  ),
-                ),
-                //input
-                UserInput(
-                  chatcontroller: chatcontroller,
-                )
-              ],
-            );
-          }),
+          actions: [
+            IconButton(
+              tooltip: 'New Chat',
+              onPressed: () => chatModel.startNewConversation(),
+              icon: const Icon(Icons.edit_note_rounded),
+            ),
+            IconButton(
+              tooltip: 'Settings',
+              onPressed: _openSettings,
+              icon: const Icon(Icons.settings_outlined),
+            ),
+          ],
+        ),
+        drawer: const ConversationDrawer(),
+        body: _ChatBody(
+          scrollController: _scrollController,
+          chatController: _chatController,
+          messages: chatModel.messages,
+          chatModel: chatModel,
         ),
       ),
     );
   }
+}
 
-  Widget _buildMessageWidget(ChatMessage message) {
+class _ChatBody extends StatelessWidget {
+  const _ChatBody({
+    required this.scrollController,
+    required this.chatController,
+    required this.messages,
+    required this.chatModel,
+  });
+
+  final ScrollController scrollController;
+  final TextEditingController chatController;
+  final List<ChatMessage> messages;
+  final ChatModel chatModel;
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scrollController.hasClients) {
+        scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      }
+    });
+
+    return Column(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: messages.isEmpty
+                ? _EmptyState(
+                    supportsImageGeneration: chatModel.supportsImageGeneration,
+                  )
+                : ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) => _buildMessageWidget(
+                    messages[index],
+                    isLast: index == messages.length - 1,
+                  ),
+                ),
+          ),
+        ),
+        UserInput(chatcontroller: chatController),
+      ],
+    );
+  }
+
+  Widget _buildMessageWidget(ChatMessage message, {required bool isLast}) {
     switch (message.sender) {
       case ChatSender.user:
         return UserMessage(
           key: ValueKey(message.id),
           text: message.text,
+          imagePath: message.userImagePath,
+          onEdit: (newText) => chatModel.editAndResend(message.id, newText),
+          onDelete: () => chatModel.deleteMessage(message.id),
         );
       case ChatSender.assistant:
         if (message.isLoading) {
-          return Loading(
-            key: ValueKey(message.id),
-            text: message.text,
-          );
+          return Loading(key: ValueKey(message.id), text: message.text);
         }
         return AiMessage(
           key: ValueKey(message.id),
@@ -240,17 +228,59 @@ class _MyAppState extends State<MyApp> {
           imageUrl: message.imageUrl,
           altText: message.altText,
           isStreaming: message.isStreaming,
+          onDelete: () => chatModel.deleteMessage(message.id),
+          onRegenerate: isLast && !message.isStreaming
+              ? () => chatModel.regenerateLastResponse()
+              : null,
         );
     }
   }
+}
 
-  String get _modelName {
-    if (dotenv.isInitialized) {
-      final value = dotenv.env['model'];
-      if (value != null && value.isNotEmpty) {
-        return value;
-      }
-    }
-    return 'gpt-4o-mini-2024-07-18';
+/// Item 5: Empty state with welcome message
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.supportsImageGeneration});
+
+  final bool supportsImageGeneration;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 64,
+              color: context.colors.gray,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Start a conversation',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: context.colors.darkGray,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              supportsImageGeneration
+                  ? 'Type a message below to chat with AI.\n'
+                      'Use /image <prompt> to generate images.'
+                  : 'Type a message below to chat with AI.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: context.colors.gray,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
