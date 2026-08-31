@@ -71,7 +71,9 @@ class AiMessage extends StatelessWidget {
                     MarkdownBody(
                       data: text,
                       selectable: true,
-                      syntaxHighlighter: AppSyntaxHighlighter(),
+                      syntaxHighlighter: AppSyntaxHighlighter(
+                        brightness: Theme.of(context).brightness,
+                      ),
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(
                           color: context.colors.black,
