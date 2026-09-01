@@ -4,6 +4,8 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.19+-02569B?logo=flutter) ![Riverpod](https://img.shields.io/badge/Riverpod-2.x-50C878?logo=dart) ![LangChain](https://img.shields.io/badge/LangChain-Dart-2e7d32) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
+[![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=apple)](https://apps.apple.com/us/app/polymind/id6806156195)
+
 ---
 
 ## 概要
@@ -104,13 +106,11 @@ lib/
 ### インストール
 
 ```bash
-git clone https://github.com/softjapan/flutter_chatgpt.git
-cd flutter_chatgpt
+git clone https://github.com/softjapan/polymind.git
+cd polymind
 flutter pub get
 flutter run
 ```
-
-> リポジトリ名は移行前の `flutter_chatgpt` のままです（別途リポジトリ名の変更が必要）。
 
 ### 初回設定
 
@@ -165,4 +165,4 @@ flutter run
 ## Author
 
 - **Twitter**: [システムエンジニア@JP](https://twitter.com/fullstack_se)
-- **GitHub**: [softjapan/flutter_chatgpt](https://github.com/softjapan/flutter_chatgpt)
+- **GitHub**: [softjapan/polymind](https://github.com/softjapan/polymind)
