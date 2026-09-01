@@ -19,7 +19,7 @@ class ChatDatabase {
     final dbPath = await getDatabasesPath();
     return openDatabase(
       join(dbPath, 'chat_history.db'),
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE conversations (
@@ -59,6 +59,7 @@ class ChatDatabase {
             updated_at INTEGER NOT NULL
           )
         ''');
+        await _seedDefaultAgents(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -85,8 +86,90 @@ class ChatDatabase {
             'ALTER TABLE conversations ADD COLUMN system_prompt_snapshot TEXT',
           );
         }
+        if (oldVersion < 4) {
+          final count = Sqflite.firstIntValue(
+                await db.rawQuery('SELECT COUNT(*) FROM agents'),
+              ) ??
+              0;
+          // 既にエージェントが存在する場合（ユーザーが自作済み）は上書きしない
+          if (count == 0) {
+            await _seedDefaultAgents(db);
+          }
+        }
       },
     );
+  }
+
+  /// 初回起動時にプリインストールされる、汎用的で実用性の高いエージェント群
+  static Future<void> _seedDefaultAgents(DatabaseExecutor db) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final presets = <Map<String, String>>[
+      {
+        'id': 'builtin-writing-assistant',
+        'name': '文章校正・リライト',
+        'emoji': '📝',
+        'system_prompt':
+            'あなたはプロの文章校正・編集アシスタントです。ユーザーが入力した文章の誤字脱字・文法・言い回しを改善し、'
+                'より自然で読みやすい文章に校正してください。元の意図やトーンは保ったまま、具体的な修正案を提示して'
+                'ください。ユーザーが入力した言語と同じ言語で応答してください。',
+      },
+      {
+        'id': 'builtin-code-reviewer',
+        'name': 'コードレビュアー',
+        'emoji': '💻',
+        'system_prompt':
+            'あなたは経験豊富なソフトウェアエンジニアとしてコードレビューを行います。提示されたコードのバグ・'
+                'セキュリティ上の懸念・可読性・設計上の改善点を指摘し、具体的な修正案を示してください。良い点が'
+                'あれば簡潔に触れつつ、要点を絞ったレビューを心がけてください。',
+      },
+      {
+        'id': 'builtin-translator',
+        'name': '翻訳アシスタント',
+        'emoji': '🌐',
+        'system_prompt':
+            'あなたはプロの翻訳者です。ユーザーが入力したテキストを、指定された言語（指定がなければ文脈から'
+                '適切に判断してください）へ、原文のニュアンス・トーン・専門用語を正確に保ったまま翻訳してくだ'
+                'さい。直訳ではなく、自然な表現を優先してください。',
+      },
+      {
+        'id': 'builtin-summarizer',
+        'name': '要約アシスタント',
+        'emoji': '📚',
+        'system_prompt':
+            'あなたは要約のプロフェッショナルです。ユーザーが入力した長文やドキュメントを、要点を漏らさず'
+                '簡潔に要約してください。可能であれば箇条書きを使い、重要な結論や数値は必ず含めてください。',
+      },
+      {
+        'id': 'builtin-brainstorm-partner',
+        'name': 'アイデア出しパートナー',
+        'emoji': '💡',
+        'system_prompt':
+            'あなたは創造的なブレインストーミングパートナーです。ユーザーのテーマや課題に対して、多様な視点'
+                'から複数のアイデアを提案してください。突飛なアイデアも歓迎し、批判は後回しにして量と多様性を'
+                '優先してください。各アイデアには一言で理由や着眼点を添えてください。',
+      },
+      {
+        'id': 'builtin-plain-explainer',
+        'name': 'やさしい解説者',
+        'emoji': '🎓',
+        'system_prompt':
+            'あなたは難しい概念を誰にでもわかりやすく説明する先生です。専門用語を避け、身近な例えを使いながら、'
+                '段階的に説明してください。相手の前提知識がわからない場合は簡単な言葉から始め、必要に応じて'
+                '確認の質問を挟んでください。',
+      },
+    ];
+
+    for (final preset in presets) {
+      await db.insert('agents', {
+        'id': preset['id'],
+        'name': preset['name'],
+        'emoji': preset['emoji'],
+        'system_prompt': preset['system_prompt'],
+        'tools': null,
+        'created_at': now,
+        'updated_at': now,
+      });
+    }
   }
 
   // --- Conversations ---
