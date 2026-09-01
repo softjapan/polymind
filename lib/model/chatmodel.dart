@@ -212,7 +212,8 @@ class ChatModel extends ChangeNotifier {
       return;
     }
 
-    final request = _ChatRequest.parse(rawInput);
+    final request =
+        _ChatRequest.parse(rawInput, hasAttachment: imagePath != null);
     if (request == null) return;
 
     // 会話がなければ新規作成（DB書き込みは行わない）
@@ -382,9 +383,11 @@ class ChatModel extends ChangeNotifier {
   /// 最初のメッセージ送信時に会話をDBへ保存する（新規作成 or 題名更新）
   Future<void> _ensureConversationTitle(String displayText) async {
     if (_messages.isNotEmpty) return;
-    final title = displayText.length > 30
-        ? '${displayText.substring(0, 30)}...'
-        : displayText;
+    final title = displayText.trim().isEmpty
+        ? 'Photo'
+        : (displayText.length > 30
+            ? '${displayText.substring(0, 30)}...'
+            : displayText);
     if (_conversationPersisted) {
       await _db.updateConversationTitle(_currentConversationId!, title);
     } else {
@@ -490,7 +493,7 @@ class ChatModel extends ChangeNotifier {
     String? imagePath,
   }) async {
     final sanitized = txt.trim();
-    if (sanitized.isEmpty) return;
+    if (sanitized.isEmpty && imagePath == null) return;
 
     final userMsg = ChatMessage(
       id: _nextId(),
@@ -693,9 +696,18 @@ class _ChatRequest {
   final String displayText;
   final String prompt;
 
-  static _ChatRequest? parse(String input) {
+  static _ChatRequest? parse(String input, {bool hasAttachment = false}) {
     final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty) {
+      // 画像添付があれば、キャプションなしのVision送信として扱う
+      return hasAttachment
+          ? const _ChatRequest(
+              type: _ChatTaskType.text,
+              displayText: '',
+              prompt: '',
+            )
+          : null;
+    }
 
     final lower = trimmed.toLowerCase();
     const prefixes = ['/image', '/img', 'image:', 'img:'];
