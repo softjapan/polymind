@@ -136,6 +136,10 @@ class ChatModel extends ChangeNotifier {
       case LlmProvider.claude:
         _repository = ClaudeRepository(_config!);
         break;
+      case LlmProvider.other:
+        // OpenAI API 互換のエンドポイントとして扱う
+        _repository = OpenAiRepository(_config!);
+        break;
     }
   }
 
