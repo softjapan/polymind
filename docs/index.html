@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PolyMind — マルチプロバイダー AI チャットクライアント</title>
+<meta name="description" content="OpenAI・Google Gemini・Anthropic Claude・Ollama をひとつのアプリで切り替えられる、OSSのマルチプロバイダーAIチャットクライアント「PolyMind」。iOS版はApp Storeで公開中。">
+<meta property="og:title" content="PolyMind — マルチプロバイダー AI チャットクライアント">
+<meta property="og:description" content="OpenAI・Gemini・Claude・Ollama を切り替えられるOSSのAIチャットクライアント。iOS版はApp Storeで公開中。">
+<meta property="og:image" content="https://softjapan.github.io/polymind/assets/icon-256.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://softjapan.github.io/polymind/">
+<style>
+  :root {
+    --bg: #FAFAFB;
+    --surface: #FFFFFF;
+    --surface-2: #F3F0FA;
+    --text: #1A1A2E;
+    --text-muted: #5B5868;
+    --border: #E5E2ED;
+    --accent: #5B2FA6;
+    --accent-2: #8B3DE6;
+    --accent-soft: #F1EAFB;
+    --shadow: 0 1px 2px rgba(26,26,46,0.04), 0 8px 24px rgba(26,26,46,0.05);
+    --shadow-lg: 0 4px 16px rgba(26,26,46,0.06), 0 24px 56px rgba(26,26,46,0.09);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121016;
+      --surface: #1B1822;
+      --surface-2: #221D2C;
+      --text: #ECEAF2;
+      --text-muted: #A9A3B8;
+      --border: #322C3D;
+      --accent: #B79CF0;
+      --accent-2: #D6B8FF;
+      --accent-soft: #2A2135;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.35), 0 32px 64px rgba(0,0,0,0.45);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+  ::selection { background: var(--accent-soft); }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+
+  .serif { font-family: ui-serif, "Iowan Old Style", "Hiragino Mincho ProN", "Palatino Linotype", Georgia, serif; }
+
+  /* Nav */
+  header.topnav {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; border-radius: 8px; }
+  .brand span { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .nav-links { display: flex; align-items: center; gap: 22px; }
+  .nav-links a.link { font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .nav-links a.link:hover { color: var(--accent); }
+  .btn-store {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--text); color: var(--bg);
+    font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+    text-decoration: none; white-space: nowrap;
+  }
+  @media (prefers-color-scheme: dark) { .btn-store { background: var(--accent); color: #1A1226; } }
+  @media (max-width: 640px) { .nav-links a.link { display: none; } }
+
+  /* Hero */
+  .hero {
+    max-width: 1080px; margin: 0 auto; padding: 88px 28px 40px;
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center;
+  }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .hero h1 {
+    font-size: clamp(34px, 5vw, 52px); font-weight: 500; line-height: 1.18;
+    margin: 0 0 20px; text-wrap: balance; letter-spacing: -0.015em;
+  }
+  .hero h1 b { font-weight: 600; background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lede { font-size: 17px; color: var(--text-muted); max-width: 46ch; margin: 0 0 32px; }
+  .cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: var(--text); color: var(--bg);
+    padding: 13px 22px; border-radius: 12px; font-weight: 600; font-size: 15px;
+    text-decoration: none; box-shadow: var(--shadow);
+  }
+  @media (prefers-color-scheme: dark) { .btn-primary { background: var(--accent); color: #1A1226; } }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); color: var(--text);
+    padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 15px;
+    text-decoration: none;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; }
+  .pill { font-size: 12px; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 11px; border-radius: 999px; }
+
+  /* Phone stack */
+  .phone-stack { position: relative; height: 460px; display: flex; align-items: center; justify-content: center; }
+  .phone {
+    position: absolute; width: 200px; border-radius: 26px; overflow: hidden;
+    border: 6px solid var(--surface); box-shadow: var(--shadow-lg);
+    background: var(--surface);
+  }
+  .phone img { width: 100%; height: 100%; object-fit: cover; }
+  .phone.back { transform: rotate(-9deg) translate(-64px, 6px); opacity: 0.88; z-index: 1; }
+  .phone.front { transform: rotate(6deg) translate(60px, -10px); z-index: 2; }
+
+  @media (max-width: 780px) {
+    .hero { grid-template-columns: 1fr; padding-top: 56px; text-align: left; }
+    .phone-stack { height: 340px; order: -1; }
+    .phone { width: 150px; }
+    .phone.back { transform: rotate(-8deg) translate(-46px, 4px); }
+    .phone.front { transform: rotate(5deg) translate(46px, -8px); }
+  }
+
+  section { max-width: 1080px; margin: 0 auto; padding: 88px 28px; }
+  section.tight { padding-top: 0; }
+  .section-head { max-width: 60ch; margin-bottom: 44px; }
+  .section-head .eyebrow { margin-bottom: 12px; }
+  .section-head h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 500; margin: 0 0 12px; text-wrap: balance; letter-spacing: -0.01em; }
+  .section-head p { color: var(--text-muted); font-size: 15.5px; margin: 0; }
+
+  /* Feature grid */
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 860px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px; box-shadow: var(--shadow);
+  }
+  .feature-icon {
+    width: 38px; height: 38px; border-radius: 10px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .feature-icon svg { width: 19px; height: 19px; }
+  .feature-card h3 { font-size: 15.5px; font-weight: 600; margin: 0 0 8px; }
+  .feature-card p { font-size: 13.5px; color: var(--text-muted); margin: 0; }
+
+  /* Providers strip */
+  .provider-strip {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;
+  }
+  .provider-chip {
+    display: flex; align-items: center; gap: 9px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow);
+  }
+  .provider-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Screenshot showcase */
+  .shot-scroller {
+    display: flex; gap: 20px; overflow-x: auto; padding: 8px 4px 20px;
+    scroll-snap-type: x proximity;
+  }
+  .shot-scroller::-webkit-scrollbar { height: 6px; }
+  .shot-scroller::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .shot-card { flex: 0 0 auto; scroll-snap-align: start; width: 200px; }
+  .shot-frame {
+    border-radius: 22px; overflow: hidden; border: 6px solid var(--surface);
+    box-shadow: var(--shadow-lg); background: var(--surface);
+  }
+  .shot-frame img { width: 100%; }
+  .shot-card .cap { font-size: 12.5px; color: var(--text-muted); margin-top: 12px; text-align: center; }
+
+  /* Tech stack */
+  .tech-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px; box-shadow: var(--shadow);
+  }
+  .tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 24px; margin-top: 24px; }
+  @media (max-width: 780px) { .tech-grid { grid-template-columns: repeat(2, 1fr); } }
+  .tech-item .k { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .tech-item .v { font-size: 14px; font-weight: 500; }
+  .tech-item .sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Privacy callout */
+  .privacy-band {
+    background: var(--surface-2); border-radius: 20px; padding: 40px;
+    display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: start;
+  }
+  @media (max-width: 640px) { .privacy-band { grid-template-columns: 1fr; } }
+  .privacy-band .icon-wrap {
+    width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0;
+  }
+  .privacy-band h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+  .privacy-band p { margin: 0; color: var(--text-muted); font-size: 14.5px; max-width: 62ch; }
+  .privacy-band a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+  /* Final CTA */
+  .final-cta {
+    text-align: center; border-radius: 24px; padding: 72px 28px;
+    background: linear-gradient(155deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: #FDFCFF;
+  }
+  .final-cta .eyebrow { color: rgba(253,252,255,0.8); }
+  .final-cta h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 500; margin: 0 0 14px; text-wrap: balance; }
+  .final-cta p { color: rgba(253,252,255,0.82); font-size: 15.5px; margin: 0 0 32px; }
+  .final-cta .btn-primary { background: #FDFCFF; color: var(--accent); box-shadow: none; }
+
+  footer.site-foot {
+    max-width: 1080px; margin: 0 auto; padding: 48px 28px 72px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    border-top: 1px solid var(--border);
+  }
+  footer.site-foot .brand-mini { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--text-muted); }
+  footer.site-foot .brand-mini img { width: 20px; height: 20px; border-radius: 6px; }
+  footer.site-foot nav { display: flex; gap: 20px; flex-wrap: wrap; }
+  footer.site-foot nav a { font-size: 13.5px; color: var(--text-muted); text-decoration: none; }
+  footer.site-foot nav a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+  <header class="topnav">
+    <a class="brand" href="#top">
+      <img src="assets/icon-256.png" alt="PolyMind アイコン">
+      <span>PolyMind</span>
+    </a>
+    <div class="nav-links">
+      <a class="link" href="#features">機能</a>
+      <a class="link" href="#screens">スクリーンショット</a>
+      <a class="link" href="#tech">技術スタック</a>
+      <a class="link" href="https://github.com/softjapan/polymind" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn-store" href="https://apps.apple.com/jp/app/polymind/id6806156195" target="_blank" rel="noopener">App Store で入手</a>
+    </div>
+  </header>
+
+  <div id="top" class="hero">
+    <div>
+      <div class="eyebrow">Open Source · iOS App</div>
+      <h1 class="serif">複数のAIを、<br><b>ひとつのアプリ</b>で使い分ける。</h1>
+      <p class="lede">OpenAI・Google Gemini・Anthropic Claude・Ollama をシームレスに切り替えられる、OSSのマルチプロバイダーAIチャットクライアント。ご自身のAPIキーで、いつものAIとどこでも会話できます。</p>
+      <div class="cta-row">
+        <a class="btn-primary" href="https://apps.apple.com/jp/app/polymind/id6806156195" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.85-.16 2.03-.86 3.53-.79 1.83.15 3.24 1.06 4.12 2.63-3.86 2.27-3.13 6.6.59 8.11-.6 1.14-1.35 2.28-2.32 3.22ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.51-3.74 4.25Z"/></svg>
+          App Store で入手
+        </a>
+        <a class="btn-secondary" href="https://github.com/softjapan/polymind" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.5 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.22-3.37-1.22-.46-1.2-1.11-1.52-1.11-1.52-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.56 2.36 1.11 2.93.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.27 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.5A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+          ソースコード
+        </a>
+      </div>
+      <div class="badge-row">
+        <span class="pill">無料</span>
+        <span class="pill">Bring Your Own Key</span>
+        <span class="pill">広告・トラッキングなし</span>
+        <span class="pill">iOS 15.0 以降</span>
+      </div>
+    </div>
+    <div class="phone-stack" aria-hidden="true">
+      <div class="phone back"><img src="assets/screenshots/03_drawer.png" alt=""></div>
+      <div class="phone front"><img src="assets/screenshots/04_chat_bottom.png" alt=""></div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="section-head">
+      <div class="eyebrow">Features</div>
+      <h2 class="serif">1つのアプリで、使いたいAIをすべて。</h2>
+      <p>設定画面からプロバイダーをいつでも切り替え。会話の中身は端末からAIプロバイダーへ直接送信され、開発者のサーバーは存在しません。</p>
+    </div>
+
+    <div class="provider-strip" style="margin-bottom: 32px;">
+      <div class="provider-chip"><span class="provider-dot" style="background:#10A37F"></span>OpenAI</div>
+      <div class="provider-chip"><span class="provider-dot" style="background:#4285F4"></span>Google Gemini</div>
+      <div class="provider-chip"><span class="provider-dot" style="background:#D97757"></span>Anthropic Claude</div>
+      <div class="provider-chip"><span class="provider-dot" style="background:#5B2FA6"></span>Ollama（ローカルLLM）</div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+        <h3>リアルタイム・ストリーミング</h3>
+        <p>各プロバイダーのChatモデルからトークン単位で応答を描画。生成中はいつでも即座に停止できます。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg></div>
+        <h3>Markdown・コードハイライト</h3>
+        <p>見出し・リスト・コードブロックを美しくレンダリング。ライト/ダークモード双方に最適化した配色です。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg></div>
+        <h3>画像入力（Vision）</h3>
+        <p>写真を添付してAIに質問できます。図表の読み取りや画像に関する相談にも対応。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <h3>画像生成</h3>
+        <p><code>/image</code> コマンドでOpenAIの画像生成APIを呼び出し、チャット内にそのまま表示・保存できます。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg></div>
+        <h3>会話履歴・検索</h3>
+        <p>SQLiteでローカル保存。サイドドロワーから会話の一覧・検索・リネーム・削除が行えます。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 6v6c0 5.25 3.75 9.75 9 11 5.25-1.25 9-5.75 9-11V6z"/></svg></div>
+        <h3>プライバシー重視の設計</h3>
+        <p>APIキーは端末のセキュアストレージにのみ保存。開発者は会話内容やAPIキーを一切収集しません。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens" class="tight">
+    <div class="section-head">
+      <div class="eyebrow">Screenshots</div>
+      <h2 class="serif">実際のアプリ画面</h2>
+      <p>すべて実機で撮影したスクリーンショットです。</p>
+    </div>
+    <div class="shot-scroller">
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/01_settings.png" alt="設定画面 — プロバイダー・APIキー・モデル選択" width="415" height="900" loading="lazy"></div>
+        <div class="cap">設定 — プロバイダーとモデルを選択</div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/02_providers.png" alt="プロバイダー切り替え画面" width="415" height="900" loading="lazy"></div>
+        <div class="cap">4つのプロバイダーをワンタップで切替</div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/03_drawer.png" alt="会話履歴ドロワー" width="415" height="900" loading="lazy"></div>
+        <div class="cap">会話履歴の一覧・検索</div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/04_chat_bottom.png" alt="チャット画面" width="415" height="900" loading="lazy"></div>
+        <div class="cap">ストリーミングで応答するチャット</div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/05_chat_code.png" alt="コードのシンタックスハイライト" width="415" height="900" loading="lazy"></div>
+        <div class="cap">コードのシンタックスハイライト</div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame"><img src="assets/screenshots/06_chat_dark.png" alt="ダークモード表示" width="415" height="900" loading="lazy"></div>
+        <div class="cap">ダークモードにも対応</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tech">
+    <div class="section-head">
+      <div class="eyebrow">Under the Hood</div>
+      <h2 class="serif">技術スタック</h2>
+      <p>Flutter × Riverpod をベースに、LangChain のRepositoryパターンで4つのLLMプロバイダーを共通インターフェースに抽象化しています。</p>
+    </div>
+    <div class="tech-panel">
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="k">UI / State</div>
+          <div class="v">Flutter + Riverpod</div>
+          <div class="sub">ChangeNotifierによる状態管理</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">LLM連携</div>
+          <div class="v">LangChain Dart</div>
+          <div class="sub">block-native APIでストリーミング制御</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">アーキテクチャ</div>
+          <div class="v">Repositoryパターン</div>
+          <div class="sub">4プロバイダーを共通インターフェースに抽象化</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">永続化</div>
+          <div class="v">SQLite (sqflite)</div>
+          <div class="sub">会話・メッセージのローカル保存</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">セキュリティ</div>
+          <div class="v">flutter_secure_storage</div>
+          <div class="sub">Keychain/EncryptedSharedPreferencesで暗号化</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">生成制御</div>
+          <div class="v">StreamSubscription管理</div>
+          <div class="sub">識別トークン方式で確実にキャンセル</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">ライセンス</div>
+          <div class="v">MIT License</div>
+          <div class="sub">ソースコードは GitHub で完全公開</div>
+        </div>
+        <div class="tech-item">
+          <div class="k">対応OS</div>
+          <div class="v">iOS 15.0+</div>
+          <div class="sub">Flutter製、クロスプラットフォーム対応可能</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="privacy-band">
+      <div class="icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 6v6c0 5.25 3.75 9.75 9 11 5.25-1.25 9-5.75 9-11V6z"/></svg>
+      </div>
+      <div>
+        <h3>自前のサーバーはありません</h3>
+        <p>PolyMind はあなたの端末と、選んだAIプロバイダーの間を直接つなぐクライアントです。APIキー・会話内容の収集は一切行わず、広告・解析SDKも含まれていません。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="final-cta">
+      <div class="eyebrow">Get Started</div>
+      <h2 class="serif">今すぐ PolyMind を試す</h2>
+      <p>無料でダウンロードし、お好きなAIプロバイダーのAPIキーを入力するだけ。</p>
+      <a class="btn-primary" href="https://apps.apple.com/jp/app/polymind/id6806156195" target="_blank" rel="noopener">App Store で入手</a>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <div class="brand-mini">
+      <img src="assets/icon-256.png" alt="">
+      <span>PolyMind — OSS・Flutter製のマルチプロバイダーAIチャットクライアント</span>
+    </div>
+    <nav>
+      <a href="https://github.com/softjapan/polymind" target="_blank" rel="noopener">GitHub</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="support.html">サポート</a>
+    </nav>
+  </footer>
+
+</body>
+</html>
