@@ -4,7 +4,11 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.19+-02569B?logo=flutter) ![Riverpod](https://img.shields.io/badge/Riverpod-2.x-50C878?logo=dart) ![LangChain](https://img.shields.io/badge/LangChain-Dart-2e7d32) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-[![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=apple)](https://apps.apple.com/us/app/polymind/id6806156195)
+### 📱 iOS 版が App Store で公開中です
+
+[![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=apple&style=for-the-badge)](https://apps.apple.com/jp/app/polymind/id6806156195)
+
+無料でダウンロードいただけます。お好きなAIプロバイダーのAPIキーを入力するだけで、すぐにお使いいただけます。
 
 ---
 
