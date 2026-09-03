@@ -24,18 +24,17 @@ APIキーは `flutter_secure_storage`（iOS/macOS: Keychain、Android: Encrypted
 
 ## デモ動画
 
-https://github.com/user-attachments/assets/fc89e894-818c-42a9-a589-b94df6c14388
+[▶ デモ動画を見る（docs/polymind-demo.mp4）](docs/polymind-demo.mp4)
 
 ---
 
 ## スクリーンショット
 
 <p align="center">
-  <img src="docs/assets/screenshots/01_settings.png" width="170" alt="設定画面">
-  <img src="docs/assets/screenshots/02_providers.png" width="170" alt="プロバイダー切り替え">
-  <img src="docs/assets/screenshots/03_drawer.png" width="170" alt="会話履歴ドロワー">
-  <img src="docs/assets/screenshots/05_chat_code.png" width="170" alt="コードのシンタックスハイライト">
-  <img src="docs/assets/screenshots/06_chat_dark.png" width="170" alt="ダークモード">
+  <img src="docs/assets/screenshots/01_agents.png" width="200" alt="プリインストール済みのAIエージェント一覧">
+  <img src="docs/assets/screenshots/02_agent_chat.png" width="200" alt="エージェントを使ったチャット">
+  <img src="docs/assets/screenshots/03_chat_code.png" width="200" alt="コードのシンタックスハイライト">
+  <img src="docs/assets/screenshots/04_chat_dark.png" width="200" alt="ダークモード">
 </p>
 
 ---
