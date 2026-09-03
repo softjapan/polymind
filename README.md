@@ -24,7 +24,7 @@ APIキーは `flutter_secure_storage`（iOS/macOS: Keychain、Android: Encrypted
 
 ## デモ動画
 
-[▶ デモ動画を見る（docs/polymind-demo.mp4）](docs/polymind-demo.mp4)
+https://github.com/user-attachments/assets/99b1e415-f99c-4001-9774-9311fdbc877a
 
 ---
 
