@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:polymind/model/agent_config.dart';
 import 'package:polymind/model/chat_message.dart';
 import 'package:polymind/model/provider_config.dart';
 import 'package:polymind/repository/llm_repository.dart';
@@ -34,12 +35,20 @@ class ChatModel extends ChangeNotifier {
   String? _currentConversationId;
   bool _conversationPersisted = false;
   List<Map<String, dynamic>> _conversations = [];
+  List<AgentConfig> _agents = [];
+  AgentConfig? _selectedAgentForNewChat;
+  String? _currentSystemPromptSnapshot;
+  AgentConfig? _activeAgentForDisplay;
 
   UnmodifiableListView<ChatMessage> get messages =>
       UnmodifiableListView(_messages);
 
   List<Map<String, dynamic>> get conversations =>
       UnmodifiableListView(_conversations);
+
+  List<AgentConfig> get agents => UnmodifiableListView(_agents);
+  AgentConfig? get selectedAgentForNewChat => _selectedAgentForNewChat;
+  AgentConfig? get activeAgentForDisplay => _activeAgentForDisplay;
 
   String? get currentConversationId => _currentConversationId;
   ProviderConfig? get config => _config;
@@ -69,7 +78,38 @@ class ChatModel extends ChangeNotifier {
       _buildRepository();
     }
     await refreshConversations();
+    _agents = await _db.getAgents();
     _initialized = true;
+    notifyListeners();
+  }
+
+  /// 新規会話用に選択中のエージェントを変更する
+  void selectAgent(AgentConfig? agent) {
+    _selectedAgentForNewChat = agent;
+    notifyListeners();
+  }
+
+  /// エージェントを新規作成する
+  Future<void> createAgent(AgentConfig agent) async {
+    await _db.createAgent(agent);
+    _agents = await _db.getAgents();
+    notifyListeners();
+  }
+
+  /// エージェントを更新する
+  Future<void> updateAgent(AgentConfig agent) async {
+    await _db.updateAgent(agent);
+    _agents = await _db.getAgents();
+    notifyListeners();
+  }
+
+  /// エージェントを削除する
+  Future<void> deleteAgent(String id) async {
+    await _db.deleteAgent(id);
+    _agents = await _db.getAgents();
+    if (_selectedAgentForNewChat?.id == id) {
+      _selectedAgentForNewChat = null;
+    }
     notifyListeners();
   }
 
@@ -96,6 +136,10 @@ class ChatModel extends ChangeNotifier {
       case LlmProvider.claude:
         _repository = ClaudeRepository(_config!);
         break;
+      case LlmProvider.other:
+        // OpenAI API 互換のエンドポイントとして扱う
+        _repository = OpenAiRepository(_config!);
+        break;
     }
   }
 
@@ -115,6 +159,8 @@ class ChatModel extends ChangeNotifier {
     _conversationPersisted = false;
     _messages.clear();
     _idSeed = 0;
+    _currentSystemPromptSnapshot = null;
+    _activeAgentForDisplay = null;
     notifyListeners();
   }
 
@@ -128,6 +174,17 @@ class ChatModel extends ChangeNotifier {
       ..addAll(loaded);
     // idSeed を復元
     _idSeed = _messages.length;
+
+    final row = await _db.getConversation(conversationId);
+    _currentSystemPromptSnapshot = row?['system_prompt_snapshot'] as String?;
+    final agentId = row?['agent_id'] as String?;
+    _activeAgentForDisplay = agentId == null
+        ? null
+        : _agents.cast<AgentConfig?>().firstWhere(
+              (a) => a?.id == agentId,
+              orElse: () => null,
+            );
+
     notifyListeners();
 
     if (onMessageAdded != null) {
@@ -144,6 +201,8 @@ class ChatModel extends ChangeNotifier {
       _currentConversationId = null;
       _conversationPersisted = false;
       _messages.clear();
+      _currentSystemPromptSnapshot = null;
+      _activeAgentForDisplay = null;
     }
     await refreshConversations();
   }
@@ -157,7 +216,8 @@ class ChatModel extends ChangeNotifier {
       return;
     }
 
-    final request = _ChatRequest.parse(rawInput);
+    final request =
+        _ChatRequest.parse(rawInput, hasAttachment: imagePath != null);
     if (request == null) return;
 
     // 会話がなければ新規作成（DB書き込みは行わない）
@@ -327,17 +387,23 @@ class ChatModel extends ChangeNotifier {
   /// 最初のメッセージ送信時に会話をDBへ保存する（新規作成 or 題名更新）
   Future<void> _ensureConversationTitle(String displayText) async {
     if (_messages.isNotEmpty) return;
-    final title = displayText.length > 30
-        ? '${displayText.substring(0, 30)}...'
-        : displayText;
+    final title = displayText.trim().isEmpty
+        ? 'Photo'
+        : (displayText.length > 30
+            ? '${displayText.substring(0, 30)}...'
+            : displayText);
     if (_conversationPersisted) {
       await _db.updateConversationTitle(_currentConversationId!, title);
     } else {
+      _currentSystemPromptSnapshot = _selectedAgentForNewChat?.systemPrompt;
+      _activeAgentForDisplay = _selectedAgentForNewChat;
       await _db.createConversation(
         id: _currentConversationId!,
         title: title,
         provider: (_config?.provider ?? LlmProvider.openai).name,
         model: _config?.model ?? '',
+        agentId: _selectedAgentForNewChat?.id,
+        systemPromptSnapshot: _currentSystemPromptSnapshot,
       );
       _conversationPersisted = true;
     }
@@ -374,8 +440,12 @@ class ChatModel extends ChangeNotifier {
       final completer = Completer<void>();
       _streamCompleter = completer;
 
-      _streamSubscription =
-          _repository!.stream(history: historySnapshot).listen(
+      _streamSubscription = _repository!
+          .stream(
+            history: historySnapshot,
+            systemPrompt: _currentSystemPromptSnapshot,
+          )
+          .listen(
         (partial) {
           if (partial.isEmpty) return;
           latestContent = partial;
@@ -399,7 +469,10 @@ class ChatModel extends ChangeNotifier {
 
       if (latestContent.isEmpty) {
         final finalHistory = List<ChatMessage>.from(_messages);
-        latestContent = await _repository!.generate(history: finalHistory);
+        latestContent = await _repository!.generate(
+          history: finalHistory,
+          systemPrompt: _currentSystemPromptSnapshot,
+        );
         if (_generationToken != token) return;
         if (latestContent.isNotEmpty) {
           _addStreamingUpdate(latestContent);
@@ -424,7 +497,7 @@ class ChatModel extends ChangeNotifier {
     String? imagePath,
   }) async {
     final sanitized = txt.trim();
-    if (sanitized.isEmpty) return;
+    if (sanitized.isEmpty && imagePath == null) return;
 
     final userMsg = ChatMessage(
       id: _nextId(),
@@ -627,9 +700,18 @@ class _ChatRequest {
   final String displayText;
   final String prompt;
 
-  static _ChatRequest? parse(String input) {
+  static _ChatRequest? parse(String input, {bool hasAttachment = false}) {
     final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty) {
+      // 画像添付があれば、キャプションなしのVision送信として扱う
+      return hasAttachment
+          ? const _ChatRequest(
+              type: _ChatTaskType.text,
+              displayText: '',
+              prompt: '',
+            )
+          : null;
+    }
 
     final lower = trimmed.toLowerCase();
     const prefixes = ['/image', '/img', 'image:', 'img:'];

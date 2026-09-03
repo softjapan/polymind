@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:polymind/constants.dart';
+import 'package:polymind/model/agent_config.dart';
 import 'package:polymind/model/chatmodel.dart';
 import 'package:polymind/model/chat_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,6 +136,27 @@ class _HomePageState extends ConsumerState<_HomePage> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (chatModel.activeAgentForDisplay != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: context.colors.inputBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${chatModel.activeAgentForDisplay!.emoji ?? '🤖'} '
+                    '${chatModel.activeAgentForDisplay!.name}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.darkGray,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ],
           ),
           actions: [
@@ -191,6 +213,7 @@ class _ChatBody extends StatelessWidget {
             child: messages.isEmpty
                 ? _EmptyState(
                     supportsImageGeneration: chatModel.supportsImageGeneration,
+                    chatModel: chatModel,
                   )
                 : ListView.builder(
                   controller: scrollController,
@@ -239,12 +262,50 @@ class _ChatBody extends StatelessWidget {
 
 /// Item 5: Empty state with welcome message
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.supportsImageGeneration});
+  const _EmptyState({
+    required this.supportsImageGeneration,
+    required this.chatModel,
+  });
 
   final bool supportsImageGeneration;
+  final ChatModel chatModel;
+
+  Future<void> _pickAgent(BuildContext context) async {
+    final selected = await showModalBottomSheet<AgentConfig?>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.block),
+                title: const Text('No agent'),
+                onTap: () => Navigator.of(ctx).pop<AgentConfig?>(null),
+              ),
+              for (final agent in chatModel.agents)
+                ListTile(
+                  leading: Text(
+                    agent.emoji?.isNotEmpty == true ? agent.emoji! : '🤖',
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  title: Text(agent.name),
+                  onTap: () => Navigator.of(ctx).pop<AgentConfig?>(agent),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    // ボトムシートを閉じた（キャンセル）場合と「No agent」を選んだ場合を区別できないが、
+    // どちらも「選択なし」として扱って問題ない設計にしている。
+    chatModel.selectAgent(selected);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selectedAgent = chatModel.selectedAgentForNewChat;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -277,6 +338,20 @@ class _EmptyState extends StatelessWidget {
                 color: context.colors.gray,
                 height: 1.5,
               ),
+            ),
+            const SizedBox(height: 20),
+            ActionChip(
+              avatar: Icon(
+                Icons.smart_toy_outlined,
+                size: 16,
+                color: context.colors.accent,
+              ),
+              label: Text(
+                selectedAgent == null
+                    ? 'No agent selected'
+                    : '${selectedAgent.emoji ?? '🤖'} ${selectedAgent.name}',
+              ),
+              onPressed: () => _pickAgent(context),
             ),
           ],
         ),

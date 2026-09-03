@@ -26,7 +26,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late double _temperature;
   bool _fetchingModels = false;
 
-  bool get _isOpenAi => _provider == LlmProvider.openai;
+  bool get _supportsImageGeneration =>
+      _provider == LlmProvider.openai || _provider == LlmProvider.other;
   bool get _requiresApiKey => _provider != LlmProvider.ollama;
 
   @override
@@ -61,6 +62,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         LlmProvider.ollama => ProviderConfig.defaultOllama,
         LlmProvider.gemini => ProviderConfig.defaultGemini,
         LlmProvider.claude => ProviderConfig.defaultClaude,
+        LlmProvider.other => ProviderConfig.defaultOther,
       };
       _endpointController.text = defaults.endpoint;
       _modelController.text = defaults.model;
@@ -105,6 +107,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return GeminiRepository(config);
       case LlmProvider.claude:
         return ClaudeRepository(config);
+      case LlmProvider.other:
+        return OpenAiRepository(config);
     }
   }
 
@@ -166,7 +170,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOpenAi = _isOpenAi;
+    final supportsImageGeneration = _supportsImageGeneration;
     final requiresApiKey = _requiresApiKey;
 
     return Scaffold(
@@ -203,6 +207,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     value: LlmProvider.claude,
                     child: Text('Claude'),
                   ),
+                  DropdownMenuItem(
+                    value: LlmProvider.other,
+                    child: Text('Other (OpenAI-compatible)'),
+                  ),
                 ],
                 onChanged: _onProviderChanged,
               ),
@@ -214,6 +222,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   LlmProvider.ollama => 'Connects to a local Ollama instance.',
                   LlmProvider.gemini => 'Connects to the Google Gemini API.',
                   LlmProvider.claude => 'Connects to the Anthropic Claude API.',
+                  LlmProvider.other =>
+                    'Connects to any other OpenAI API-compatible endpoint '
+                        '(self-hosted or third-party gateways).',
                 },
                 style: TextStyle(fontSize: 12, color: context.colors.darkGray),
               ),
@@ -295,7 +306,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: TextStyle(fontSize: 12, color: context.colors.darkGray),
               ),
 
-              if (isOpenAi) ...[
+              if (supportsImageGeneration) ...[
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _imageModelController,

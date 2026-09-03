@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:polymind/constants.dart';
 import 'package:polymind/model/chatmodel.dart';
+import 'package:polymind/widgets/agent_list_screen.dart';
 
 class ConversationDrawer extends ConsumerStatefulWidget {
   const ConversationDrawer({super.key});
@@ -96,6 +97,33 @@ class _ConversationDrawerState extends ConsumerState<ConversationDrawer> {
                   label: const Text('New Chat'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: context.colors.accent,
+                    side: BorderSide(color: context.colors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AgentListScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.smart_toy_outlined),
+                  label: const Text('Manage Agents'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.colors.darkGray,
                     side: BorderSide(color: context.colors.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

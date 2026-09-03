@@ -13,6 +13,9 @@ enum LlmProvider {
 
   /// Anthropic Claude API
   claude,
+
+  /// その他の OpenAI API 互換プロバイダー
+  other,
 }
 
 /// プロバイダー設定データ
@@ -43,6 +46,7 @@ class ProviderConfig {
       case LlmProvider.openai:
       case LlmProvider.gemini:
       case LlmProvider.claude:
+      case LlmProvider.other:
         return apiKey != null && apiKey!.isNotEmpty;
       case LlmProvider.ollama:
         return true; // Ollama は API キー不要
@@ -73,6 +77,12 @@ class ProviderConfig {
     provider: LlmProvider.claude,
     endpoint: 'https://api.anthropic.com',
     model: 'claude-sonnet-4-5',
+  );
+
+  static const defaultOther = ProviderConfig(
+    provider: LlmProvider.other,
+    endpoint: '',
+    model: '',
   );
 
   ProviderConfig copyWith({

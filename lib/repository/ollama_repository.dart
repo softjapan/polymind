@@ -28,15 +28,25 @@ class OllamaRepository implements LlmRepository {
   bool get supportsImageGeneration => false;
 
   @override
-  Future<String> generate({required List<ChatMessage> history}) async {
-    final prompt = lc.PromptValue.chat(await _buildPrompt(history));
+  Future<String> generate({
+    required List<ChatMessage> history,
+    String? systemPrompt,
+  }) async {
+    final prompt = lc.PromptValue.chat(
+      await _buildPrompt(history, systemPrompt: systemPrompt),
+    );
     final result = await _chatModel.invoke(prompt);
     return result.outputAsString;
   }
 
   @override
-  Stream<String> stream({required List<ChatMessage> history}) async* {
-    final prompt = lc.PromptValue.chat(await _buildPrompt(history));
+  Stream<String> stream({
+    required List<ChatMessage> history,
+    String? systemPrompt,
+  }) async* {
+    final prompt = lc.PromptValue.chat(
+      await _buildPrompt(history, systemPrompt: systemPrompt),
+    );
     var buffer = '';
     await for (final chunk in _chatModel.stream(prompt)) {
       final delta = chunk.output.contentAsString;
@@ -77,9 +87,13 @@ class OllamaRepository implements LlmRepository {
   }
 
   static Future<List<lc.ChatMessage>> _buildPrompt(
-    List<ChatMessage> history,
-  ) async {
+    List<ChatMessage> history, {
+    String? systemPrompt,
+  }) async {
     final prompt = <lc.ChatMessage>[];
+    if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
+      prompt.add(lc.ChatMessage.system(systemPrompt.trim()));
+    }
     for (final message in history) {
       if (!message.isComplete) continue;
       if (message.sender == ChatSender.user) {
