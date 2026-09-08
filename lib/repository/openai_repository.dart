@@ -12,15 +12,17 @@ import 'package:polymind/repository/llm_repository.dart';
 /// OpenAI 用 LLM Repository
 class OpenAiRepository implements LlmRepository {
   OpenAiRepository(this._config)
-      : _chatModel = ChatOpenAI(
-          apiKey: _config.apiKey ?? '',
-          baseUrl: _normalizeUrl(_config.endpoint),
-          defaultOptions: ChatOpenAIOptions(
-            model: _config.model,
-            temperature: _config.temperature,
-            maxTokens: 2000,
-          ),
-        );
+    : _chatModel = ChatOpenAI(
+        apiKey: _config.apiKey ?? '',
+        baseUrl: _normalizeUrl(_config.endpoint),
+        defaultOptions: ChatOpenAIOptions(
+          model: _config.model,
+          temperature: _supportsCustomTemperature(_config.model)
+              ? _config.temperature
+              : null,
+          maxTokens: 2000,
+        ),
+      );
 
   final ProviderConfig _config;
   final ChatOpenAI _chatModel;
@@ -114,13 +116,22 @@ class OpenAiRepository implements LlmRepository {
     }
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     final data = decoded['data'] as List<dynamic>? ?? [];
-    final ids = data
-        .whereType<Map<String, dynamic>>()
-        .map((m) => m['id'] as String?)
-        .whereType<String>()
-        .toList()
-      ..sort();
+    final ids =
+        data
+            .whereType<Map<String, dynamic>>()
+            .map((m) => m['id'] as String?)
+            .whereType<String>()
+            .toList()
+          ..sort();
     return ids;
+  }
+
+  /// OpenAI の推論系モデル（o1/o3/o4/gpt-5 系）はデフォルト値 (1) 以外の
+  /// temperature を受け付けず、指定すると 400 エラーになる。
+  static bool _supportsCustomTemperature(String model) {
+    final id = model.toLowerCase();
+    const reasoningPrefixes = ['o1', 'o3', 'o4', 'gpt-5'];
+    return !reasoningPrefixes.any((prefix) => id.startsWith(prefix));
   }
 
   static String _normalizeUrl(String url) {
