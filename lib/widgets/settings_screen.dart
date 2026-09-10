@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:polymind/constants.dart';
 import 'package:polymind/model/provider_config.dart';
 import 'package:polymind/model/chatmodel.dart';
@@ -25,6 +26,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _apiKeyController;
   late double _temperature;
   bool _fetchingModels = false;
+  String? _versionLabel;
 
   bool get _supportsImageGeneration =>
       _provider == LlmProvider.openai || _provider == LlmProvider.other;
@@ -38,10 +40,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _provider = config.provider;
     _endpointController = TextEditingController(text: config.endpoint);
     _modelController = TextEditingController(text: config.model);
-    _imageModelController =
-        TextEditingController(text: config.imageModel ?? '');
+    _imageModelController = TextEditingController(
+      text: config.imageModel ?? '',
+    );
     _apiKeyController = TextEditingController(text: config.apiKey ?? '');
     _temperature = config.temperature;
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      _versionLabel = 'Version ${info.version} (${info.buildNumber})';
+    });
   }
 
   @override
@@ -53,21 +65,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
-  void _onProviderChanged(LlmProvider? provider) {
+  Future<void> _onProviderChanged(LlmProvider? provider) async {
     if (provider == null) return;
+
+    // 切り替え先プロバイダーに保存済みの設定があればそれを復元し、
+    // なければデフォルト値にフォールバックする。
+    final saved = await ref.read(chatProvider).configForProvider(provider);
+    final defaults = switch (provider) {
+      LlmProvider.openai => ProviderConfig.defaultOpenAi,
+      LlmProvider.ollama => ProviderConfig.defaultOllama,
+      LlmProvider.gemini => ProviderConfig.defaultGemini,
+      LlmProvider.claude => ProviderConfig.defaultClaude,
+      LlmProvider.other => ProviderConfig.defaultOther,
+    };
+    final restored = saved ?? defaults;
+
+    if (!mounted) return;
     setState(() {
       _provider = provider;
-      final defaults = switch (provider) {
-        LlmProvider.openai => ProviderConfig.defaultOpenAi,
-        LlmProvider.ollama => ProviderConfig.defaultOllama,
-        LlmProvider.gemini => ProviderConfig.defaultGemini,
-        LlmProvider.claude => ProviderConfig.defaultClaude,
-        LlmProvider.other => ProviderConfig.defaultOther,
-      };
-      _endpointController.text = defaults.endpoint;
-      _modelController.text = defaults.model;
-      _imageModelController.text = defaults.imageModel ?? '';
-      if (provider == LlmProvider.ollama) _apiKeyController.clear();
+      _endpointController.text = restored.endpoint;
+      _modelController.text = restored.model;
+      _imageModelController.text = restored.imageModel ?? '';
+      _apiKeyController.text = provider == LlmProvider.ollama
+          ? ''
+          : (restored.apiKey ?? '');
+      _temperature = restored.temperature;
     });
   }
 
@@ -90,9 +112,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(chatProvider).updateConfig(config);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Settings saved')));
       Navigator.of(context).pop();
     }
   }
@@ -114,15 +136,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _fetchModels() async {
     if (_requiresApiKey && _apiKeyController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter an API key first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter an API key first')));
       return;
     }
     if (_endpointController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter an endpoint first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter an endpoint first')));
       return;
     }
 
@@ -141,9 +163,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (!mounted) return;
       if (models.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No models found')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No models found')));
         return;
       }
 
@@ -327,9 +349,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 TextFormField(
                   controller: _apiKeyController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'API Key',
-                    prefixIcon: Icon(Icons.key_outlined),
+                    prefixIcon: const Icon(Icons.key_outlined),
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _apiKeyController,
+                      builder: (context, value, child) {
+                        if (value.text.isEmpty) return const SizedBox.shrink();
+                        return IconButton(
+                          tooltip: 'Clear',
+                          icon: const Icon(Icons.clear),
+                          onPressed: () => _apiKeyController.clear(),
+                        );
+                      },
+                    ),
                   ),
                   validator: (v) {
                     if (requiresApiKey && (v == null || v.trim().isEmpty)) {
@@ -341,7 +374,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'Stored securely on device. Never sent to third parties.',
-                  style: TextStyle(fontSize: 12, color: context.colors.darkGray),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.darkGray,
+                  ),
                 ),
               ],
 
@@ -352,6 +388,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 onPressed: _save,
                 icon: const Icon(Icons.check_rounded),
                 label: const Text('Save', style: TextStyle(fontSize: 16)),
+              ),
+
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  _versionLabel ?? '',
+                  style: TextStyle(fontSize: 12, color: context.colors.gray),
+                ),
               ),
             ],
           ),

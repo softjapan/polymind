@@ -121,6 +121,11 @@ class ChatModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 指定プロバイダーについて保存済みの設定を読み込む（未設定なら null）
+  Future<ProviderConfig?> configForProvider(LlmProvider provider) {
+    return _settings.loadForProvider(provider);
+  }
+
   void _buildRepository() {
     if (_config == null) return;
     switch (_config!.provider) {
@@ -181,9 +186,9 @@ class ChatModel extends ChangeNotifier {
     _activeAgentForDisplay = agentId == null
         ? null
         : _agents.cast<AgentConfig?>().firstWhere(
-              (a) => a?.id == agentId,
-              orElse: () => null,
-            );
+            (a) => a?.id == agentId,
+            orElse: () => null,
+          );
 
     notifyListeners();
 
@@ -210,14 +215,14 @@ class ChatModel extends ChangeNotifier {
   /// チャット送信
   Future<void> sendChat(String rawInput, {String? imagePath}) async {
     if (_repository == null) {
-      _handleAssistantError(
-        'プロバイダーが設定されていません。設定画面でプロバイダーとAPIキーを設定してください。',
-      );
+      _handleAssistantError('プロバイダーが設定されていません。設定画面でプロバイダーとAPIキーを設定してください。');
       return;
     }
 
-    final request =
-        _ChatRequest.parse(rawInput, hasAttachment: imagePath != null);
+    final request = _ChatRequest.parse(
+      rawInput,
+      hasAttachment: imagePath != null,
+    );
     if (request == null) return;
 
     // 会話がなければ新規作成（DB書き込みは行わない）
@@ -390,8 +395,8 @@ class ChatModel extends ChangeNotifier {
     final title = displayText.trim().isEmpty
         ? 'Photo'
         : (displayText.length > 30
-            ? '${displayText.substring(0, 30)}...'
-            : displayText);
+              ? '${displayText.substring(0, 30)}...'
+              : displayText);
     if (_conversationPersisted) {
       await _db.updateConversationTitle(_currentConversationId!, title);
     } else {
@@ -420,18 +425,13 @@ class ChatModel extends ChangeNotifier {
     try {
       if (type == _ChatTaskType.image) {
         if (!_repository!.supportsImageGeneration) {
-          _handleAssistantError(
-            'このプロバイダーは画像生成に対応していません。',
-          );
+          _handleAssistantError('このプロバイダーは画像生成に対応していません。');
           return;
         }
         final imageUrl = await _repository!.generateImage(prompt: prompt);
         // stopGenerating() で無効化されていれば結果は破棄する
         if (_generationToken != token) return;
-        await _completeWithImage(
-          imageUrl: imageUrl,
-          description: prompt,
-        );
+        await _completeWithImage(imageUrl: imageUrl, description: prompt);
         return;
       }
 
@@ -446,19 +446,19 @@ class ChatModel extends ChangeNotifier {
             systemPrompt: _currentSystemPromptSnapshot,
           )
           .listen(
-        (partial) {
-          if (partial.isEmpty) return;
-          latestContent = partial;
-          _addStreamingUpdate(latestContent);
-        },
-        onDone: () {
-          if (!completer.isCompleted) completer.complete();
-        },
-        onError: (Object e, StackTrace st) {
-          if (!completer.isCompleted) completer.completeError(e, st);
-        },
-        cancelOnError: true,
-      );
+            (partial) {
+              if (partial.isEmpty) return;
+              latestContent = partial;
+              _addStreamingUpdate(latestContent);
+            },
+            onDone: () {
+              if (!completer.isCompleted) completer.complete();
+            },
+            onError: (Object e, StackTrace st) {
+              if (!completer.isCompleted) completer.completeError(e, st);
+            },
+            cancelOnError: true,
+          );
 
       await completer.future;
       _streamSubscription = null;
@@ -487,8 +487,7 @@ class ChatModel extends ChangeNotifier {
           : 'An unexpected error occurred. Please check your connection and settings.';
       debugPrint('ChatModel error: $e');
       _handleAssistantError(safeMsg);
-    } finally {
-    }
+    } finally {}
   }
 
   Future<void> _addUserMessage(

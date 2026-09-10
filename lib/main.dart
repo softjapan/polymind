@@ -72,9 +72,9 @@ class _HomePageState extends ConsumerState<_HomePage> {
   }
 
   void _openSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
   }
 
   @override
@@ -83,9 +83,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
 
     // 初期化完了まではローディング表示
     if (!chatModel.isInitialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (!chatModel.isConfigured && !_hasOpenedSettings) {
@@ -113,8 +111,10 @@ class _HomePageState extends ConsumerState<_HomePage> {
             children: [
               if (providerName != null) ...[
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
@@ -130,30 +130,29 @@ class _HomePageState extends ConsumerState<_HomePage> {
                 ),
                 const SizedBox(width: 8),
               ],
-              Flexible(
-                child: Text(
-                  modelName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+              Flexible(child: Text(modelName, overflow: TextOverflow.ellipsis)),
               if (chatModel.activeAgentForDisplay != null) ...[
                 const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: context.colors.inputBg,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${chatModel.activeAgentForDisplay!.emoji ?? '🤖'} '
-                    '${chatModel.activeAgentForDisplay!.name}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.darkGray,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    decoration: BoxDecoration(
+                      color: context.colors.inputBg,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${chatModel.activeAgentForDisplay!.emoji ?? '🤖'} '
+                      '${chatModel.activeAgentForDisplay!.name}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.darkGray,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ],
@@ -216,14 +215,14 @@ class _ChatBody extends StatelessWidget {
                     chatModel: chatModel,
                   )
                 : ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.only(top: 8, bottom: 8),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) => _buildMessageWidget(
-                    messages[index],
-                    isLast: index == messages.length - 1,
+                    controller: scrollController,
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) => _buildMessageWidget(
+                      messages[index],
+                      isLast: index == messages.length - 1,
+                    ),
                   ),
-                ),
           ),
         ),
         UserInput(chatcontroller: chatController),
@@ -330,7 +329,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               supportsImageGeneration
                   ? 'Type a message below to chat with AI.\n'
-                      'Use /image <prompt> to generate images.'
+                        'Use /image <prompt> to generate images.'
                   : 'Type a message below to chat with AI.',
               textAlign: TextAlign.center,
               style: TextStyle(
